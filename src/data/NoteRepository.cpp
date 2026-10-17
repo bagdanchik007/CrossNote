@@ -19,6 +19,25 @@
 namespace CrossNote {
 namespace {
 
+QString safeAbsolutePath(const QString &vault, const QString &relativePath)
+{
+    if (relativePath.isEmpty() || QDir::isAbsolutePath(relativePath))
+        return {};
+    const QString clean = QDir::cleanPath(relativePath);
+    if (clean == QStringLiteral("..") || clean.startsWith(QStringLiteral("../")))
+        return {};
+    const QString root = QDir(vault).absolutePath();
+    const QString candidate = QDir(root).absoluteFilePath(clean);
+    const QString prefix = root.endsWith(QDir::separator()) ? root : root + QDir::separator();
+    const Qt::CaseSensitivity sensitivity = Q_OS_WIN ? Qt::CaseInsensitive : Qt::CaseSensitive;
+    if (!candidate.startsWith(prefix, sensitivity))
+        return {};
+    const QString canonical = QFileInfo(candidate).canonicalFilePath();
+    if (!canonical.isEmpty() && canonical != root && !canonical.startsWith(prefix, sensitivity))
+        return {};
+    return candidate;
+}
+
 QString sqlError(const QSqlQuery &query)
 {
     return query.lastError().text();
@@ -164,7 +183,9 @@ public:
                 item.lastOpenedAt = QDateTime::fromMSecsSinceEpoch(query.value(5).toLongLong(), Qt::UTC);
             item.favorite = query.value(6).toBool();
             item.tags = parseTags(query.value(7).toString());
-            const QString absolute = QDir(vault).filePath(item.relativePath);
+            const QString absolute = safeAbsolutePath(vault, item.relativePath);
+            if (absolute.isEmpty())
+                continue;
             QFile file(absolute);
             if (file.open(QIODevice::ReadOnly))
                 item.content = QString::fromUtf8(file.readAll());
@@ -264,7 +285,12 @@ std::optional<Note> NoteRepository::note(const QString &id, bool includeContent,
     result.tags = parseTags(query.value(6).toString());
 
     if (includeContent) {
-        QFile file(QDir(m_impl->vault).filePath(result.relativePath));
+        const QString absolute = safeAbsolutePath(m_impl->vault, result.relativePath);
+        if (absolute.isEmpty()) {
+            if (error) *error = QStringLiteral("Der Notizpfad liegt außerhalb des Vaults.");
+            return std::nullopt;
+        }
+        QFile file(absolute);
         if (!file.open(QIODevice::ReadOnly)) {
             if (error) *error = file.errorString();
             return std::nullopt;
@@ -294,7 +320,8 @@ bool NoteRepository::refresh(QString *error)
                           QDirIterator::Subdirectories);
     while (iterator.hasNext()) {
         const QString absolutePath = iterator.next();
-        const QString relativePath = QDir(m_impl->vault).relativeFilePath(absolutePath);
+        QString relativePath = QDir(m_impl->vault).relativeFilePath(absolutePath);
+        relativePath.replace(QDir::separator(), u'/' );
         if (relativePath.startsWith(QStringLiteral(".trash/"))
             || relativePath.contains(QStringLiteral("/.trash/")))
             continue;
