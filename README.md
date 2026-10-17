@@ -4,7 +4,7 @@ CrossNote ist ein plattformübergreifendes Notizprojekt. Ziel ist eine native Ap
 
 ## Projektstatus
 
-**Phase 01 – Projektgrundlage.** Das Repository enthält ein minimales Qt-Quick-Fenster und CMake-Konfiguration. Notizverwaltung und Speicherung sind noch nicht implementiert.
+**Phase 02 – App-Grundgerüst und Navigation.** Das Repository enthält ein Qt-Quick-Hauptfenster mit Seitenleisten-Navigation, Notizlistenbereich, Arbeitsbereich und Statuszeile. Notizverwaltung und Speicherung folgen in Phase 03.
 
 ## Voraussetzungen
 

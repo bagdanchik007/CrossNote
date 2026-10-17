@@ -18,4 +18,4 @@
 
 ## Aktueller Stand
 
-Das Repository enthält nur das Qt-Quick-Grundfenster und die Build-Konfiguration. Die Komponenten für Notizverwaltung, Datenbank, Website und Sync werden in späteren Phasen ergänzt.
+Das Repository enthält das Qt-Quick-Grundfenster mit Navigation und leeren Ansichten sowie die Build-Konfiguration. Notizverwaltung, Datenbank, Website und Sync werden in späteren Phasen ergänzt.

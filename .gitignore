@@ -8,3 +8,6 @@ CMakeUserPresets.json
 *.log
 .DS_Store
 Thumbs.db
+
+# Inaktiver Git-Metadatenordner aus der Projektübernahme
+.git.disabled/
