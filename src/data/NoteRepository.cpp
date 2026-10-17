@@ -130,7 +130,8 @@ public:
             QStringLiteral("CREATE TABLE IF NOT EXISTS notes ("
                            "id TEXT PRIMARY KEY, title TEXT NOT NULL, relative_path TEXT NOT NULL UNIQUE, "
                            "created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, "
-                           "last_opened_at INTEGER, favorite INTEGER NOT NULL DEFAULT 0, tags TEXT NOT NULL DEFAULT '[]')")
+                           "last_opened_at INTEGER, favorite INTEGER NOT NULL DEFAULT 0, tags TEXT NOT NULL DEFAULT '[]')"),
+            QStringLiteral("CREATE TABLE IF NOT EXISTS trashed_notes (id TEXT PRIMARY KEY, title TEXT NOT NULL, relative_path TEXT NOT NULL, trash_path TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, last_opened_at INTEGER, favorite INTEGER NOT NULL DEFAULT 0, tags TEXT NOT NULL DEFAULT '[]', deleted_at INTEGER NOT NULL)")
         };
         for (const QString &statement : statements) {
             QSqlQuery query(database);
