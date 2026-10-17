@@ -526,3 +526,56 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
     emit notesChanged();
     return true;
 }
+bool NoteRepository::setFavorite(const QString &id, bool favorite, QString *error)
+{
+    QSqlQuery query(m_impl->database);
+    query.prepare(QStringLiteral("UPDATE notes SET favorite = ? WHERE id = ?"));
+    query.addBindValue(favorite);
+    query.addBindValue(id);
+    if (!query.exec()) {
+        if (error) *error = sqlError(query);
+        return false;
+    }
+    if (query.numRowsAffected() != 1) {
+        if (error) *error = QStringLiteral("Die Notiz wurde nicht gefunden.");
+        return false;
+    }
+    emit notesChanged();
+    return true;
+}
+
+bool NoteRepository::setTags(const QString &id, const QStringList &tags, QString *error)
+{
+    QSqlQuery query(m_impl->database);
+    query.prepare(QStringLiteral("UPDATE notes SET tags = ? WHERE id = ?"));
+    query.addBindValue(normalizedTags(tags));
+    query.addBindValue(id);
+    if (!query.exec()) {
+        if (error) *error = sqlError(query);
+        return false;
+    }
+    if (query.numRowsAffected() != 1) {
+        if (error) *error = QStringLiteral("Die Notiz wurde nicht gefunden.");
+        return false;
+    }
+    emit notesChanged();
+    return true;
+}
+
+bool NoteRepository::markOpened(const QString &id, QString *error)
+{
+    QSqlQuery query(m_impl->database);
+    query.prepare(QStringLiteral("UPDATE notes SET last_opened_at = ? WHERE id = ?"));
+    query.addBindValue(QDateTime::currentDateTimeUtc().toMSecsSinceEpoch());
+    query.addBindValue(id);
+    if (!query.exec()) {
+        if (error) *error = sqlError(query);
+        return false;
+    }
+    if (query.numRowsAffected() != 1) {
+        if (error) *error = QStringLiteral("Die Notiz wurde nicht gefunden.");
+        return false;
+    }
+    emit notesChanged();
+    return true;
+}
