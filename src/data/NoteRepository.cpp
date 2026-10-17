@@ -632,3 +632,68 @@ bool NoteRepository::moveToTrash(const QString &id, QString *error)
     emit notesChanged();
     return true;
 }
+bool NoteRepository::restoreFromTrash(const QString &id, QString *error)
+{
+    QSqlQuery lookup(m_impl->database);
+    lookup.prepare(QStringLiteral("SELECT title, relative_path, trash_path, created_at, updated_at, last_opened_at, favorite, tags FROM trashed_notes WHERE id = ?"));
+    lookup.addBindValue(id);
+    if (!lookup.exec() || !lookup.next()) {
+        if (error) *error = lookup.lastError().text().isEmpty()
+            ? QStringLiteral("Die gelöschte Notiz wurde nicht gefunden.") : sqlError(lookup);
+        return false;
+    }
+    const QString title = lookup.value(0).toString();
+    const QString originalPath = lookup.value(1).toString();
+    const QString trashPath = lookup.value(2).toString();
+    const QVariant createdAt = lookup.value(3);
+    const QVariant updatedAt = lookup.value(4);
+    const QVariant lastOpenedAt = lookup.value(5);
+    const QVariant favorite = lookup.value(6);
+    const QVariant tags = lookup.value(7);
+    lookup.finish();
+
+    QString restoredPath = originalPath;
+    if (QFileInfo::exists(QDir(m_impl->vault).filePath(restoredPath))) {
+        const QString stem = safeFileStem(title);
+        int suffix = 2;
+        do {
+            restoredPath = QStringLiteral("%1-%2.md").arg(stem).arg(suffix++);
+        } while (QFileInfo::exists(QDir(m_impl->vault).filePath(restoredPath)));
+    }
+    const QString absoluteTrash = QDir(m_impl->vault).filePath(trashPath);
+    const QString absoluteRestored = QDir(m_impl->vault).filePath(restoredPath);
+    if (!QFile::rename(absoluteTrash, absoluteRestored)) {
+        if (error) *error = QStringLiteral("Die Notiz konnte nicht wiederhergestellt werden.");
+        return false;
+    }
+
+    if (!m_impl->database.transaction()) {
+        QFile::rename(absoluteRestored, absoluteTrash);
+        if (error) *error = m_impl->database.lastError().text();
+        return false;
+    }
+    QSqlQuery insert(m_impl->database);
+    insert.prepare(QStringLiteral("INSERT INTO notes (id, title, relative_path, created_at, updated_at, last_opened_at, favorite, tags) "
+                                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"));
+    insert.addBindValue(id);
+    insert.addBindValue(title);
+    insert.addBindValue(restoredPath);
+    insert.addBindValue(createdAt);
+    insert.addBindValue(updatedAt);
+    insert.addBindValue(lastOpenedAt);
+    insert.addBindValue(favorite);
+    insert.addBindValue(tags);
+    QSqlQuery remove(m_impl->database);
+    remove.prepare(QStringLiteral("DELETE FROM trashed_notes WHERE id = ?"));
+    remove.addBindValue(id);
+    if (!insert.exec() || !remove.exec() || !m_impl->database.commit()) {
+        const QString message = !insert.lastError().text().isEmpty() ? sqlError(insert)
+            : !remove.lastError().text().isEmpty() ? sqlError(remove) : m_impl->database.lastError().text();
+        m_impl->database.rollback();
+        QFile::rename(absoluteRestored, absoluteTrash);
+        if (error) *error = message;
+        return false;
+    }
+    emit notesChanged();
+    return true;
+}
