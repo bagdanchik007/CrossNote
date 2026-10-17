@@ -12,6 +12,7 @@ struct Note
     QString title;
     QString relativePath;
     QString content;
+    QString frontMatter;
     QStringList tags;
     QDateTime createdAt;
     QDateTime updatedAt;
