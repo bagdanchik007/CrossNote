@@ -465,7 +465,6 @@ ApplicationWindow {
                         text: noteController.errorText.length ? noteController.errorText : noteController.statusText
                         color: noteController.errorText.length ? "#b42318" : "#687181"
                         elide: Text.ElideRight
-                        Accessible.live: Accessible.Polite
                     }
                     Label {
                         text: noteController.hasSelection ? qsTr("%1 Wörter").arg(bodyEditor.text.trim().length ? bodyEditor.text.trim().split(/\\s+/).length : 0) : ""

@@ -38,6 +38,6 @@ target_compile_options(crossnote PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wpedantic>
 )
 
-if (WIN32)
+if (WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Release")
     set_property(TARGET crossnote PROPERTY WIN32_EXECUTABLE TRUE)
 endif()
