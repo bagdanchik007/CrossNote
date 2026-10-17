@@ -580,3 +580,55 @@ bool NoteRepository::markOpened(const QString &id, QString *error)
     emit notesChanged();
     return true;
 }
+bool NoteRepository::moveToTrash(const QString &id, QString *error)
+{
+    QSqlQuery lookup(m_impl->database);
+    lookup.prepare(QStringLiteral("SELECT title, relative_path, created_at, updated_at, last_opened_at, favorite, tags FROM notes WHERE id = ?"));
+    lookup.addBindValue(id);
+    if (!lookup.exec() || !lookup.next()) {
+        if (error) *error = lookup.lastError().text().isEmpty()
+            ? QStringLiteral("Die Notiz wurde nicht gefunden.") : sqlError(lookup);
+        return false;
+    }
+
+    const QString originalPath = lookup.value(1).toString();
+    const QString trashPath = QStringLiteral(".trash/%1.md").arg(id);
+    const QString absoluteOriginal = QDir(m_impl->vault).filePath(originalPath);
+    const QString absoluteTrash = QDir(m_impl->vault).filePath(trashPath);
+    if (QFileInfo::exists(absoluteTrash) || !QFile::rename(absoluteOriginal, absoluteTrash)) {
+        if (error) *error = QStringLiteral("Die Notiz kann nicht in den Papierkorb verschoben werden.");
+        return false;
+    }
+
+    if (!m_impl->database.transaction()) {
+        QFile::rename(absoluteTrash, absoluteOriginal);
+        if (error) *error = m_impl->database.lastError().text();
+        return false;
+    }
+    QSqlQuery insert(m_impl->database);
+    insert.prepare(QStringLiteral("INSERT INTO trashed_notes (id, title, relative_path, trash_path, created_at, updated_at, last_opened_at, favorite, tags, deleted_at) "
+                                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+    insert.addBindValue(id);
+    insert.addBindValue(lookup.value(0));
+    insert.addBindValue(originalPath);
+    insert.addBindValue(trashPath);
+    insert.addBindValue(lookup.value(2));
+    insert.addBindValue(lookup.value(3));
+    insert.addBindValue(lookup.value(4));
+    insert.addBindValue(lookup.value(5));
+    insert.addBindValue(lookup.value(6));
+    insert.addBindValue(QDateTime::currentDateTimeUtc().toMSecsSinceEpoch());
+    QSqlQuery remove(m_impl->database);
+    remove.prepare(QStringLiteral("DELETE FROM notes WHERE id = ?"));
+    remove.addBindValue(id);
+    if (!insert.exec() || !remove.exec() || !m_impl->database.commit()) {
+        const QString message = !insert.lastError().text().isEmpty() ? sqlError(insert)
+            : !remove.lastError().text().isEmpty() ? sqlError(remove) : m_impl->database.lastError().text();
+        m_impl->database.rollback();
+        QFile::rename(absoluteTrash, absoluteOriginal);
+        if (error) *error = message;
+        return false;
+    }
+    emit notesChanged();
+    return true;
+}
