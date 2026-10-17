@@ -1,19 +1,67 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
 import QtQuick.Layouts
 
 ApplicationWindow {
     id: window
 
     property string currentSection: "notes"
+    property bool previewMode: false
 
-    width: 1180
-    height: 760
-    minimumWidth: 850
-    minimumHeight: 560
+    width: 1280
+    height: 820
+    minimumWidth: 900
+    minimumHeight: 600
     visible: true
     title: qsTr("CrossNote")
     color: "#f3f5f8"
+
+    function saveEditor() {
+        if (noteController.hasSelection)
+            noteController.saveCurrent(titleField.text, bodyEditor.text)
+    }
+
+    FolderDialog {
+        id: vaultDialog
+        title: qsTr("Notizordner auswählen")
+        onAccepted: {
+            saveEditor()
+            noteController.setVaultPath(selectedFolder.toLocalFile())
+        }
+    }
+
+    Dialog {
+        id: deleteDialog
+        title: qsTr("Notiz in den Papierkorb verschieben?")
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        anchors.centerIn: parent
+        Label {
+            text: qsTr("Die Notiz bleibt im Vault-Papierkorb und kann später wiederhergestellt werden.")
+            wrapMode: Text.WordWrap
+        }
+        onAccepted: {
+            saveEditor()
+            noteController.deleteCurrent()
+        }
+    }
+
+    Timer {
+        id: saveTimer
+        interval: 650
+        repeat: false
+        onTriggered: saveEditor()
+    }
+
+    Connections {
+        target: noteController
+        function onCurrentNoteChanged() {
+            titleField.text = noteController.selectedTitle
+            bodyEditor.text = noteController.selectedContent
+            window.previewMode = false
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -29,7 +77,7 @@ ApplicationWindow {
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: 20
-                anchors.rightMargin: 20
+                anchors.rightMargin: 18
                 spacing: 12
 
                 Rectangle {
@@ -37,7 +85,6 @@ ApplicationWindow {
                     Layout.preferredHeight: 32
                     radius: 9
                     color: "#5369e8"
-
                     Label {
                         anchors.centerIn: parent
                         text: "C"
@@ -57,9 +104,17 @@ ApplicationWindow {
                 Item { Layout.fillWidth: true }
 
                 Label {
-                    text: qsTr("Lokaler Arbeitsbereich")
+                    Layout.maximumWidth: 320
+                    elide: Text.ElideMiddle
+                    text: noteController.vaultPath
                     color: "#687181"
-                    font.pixelSize: 13
+                    font.pixelSize: 12
+                    Accessible.name: qsTr("Aktueller Notizordner")
+                }
+
+                Button {
+                    text: qsTr("Ordner wechseln")
+                    onClicked: vaultDialog.open()
                 }
             }
         }
@@ -71,7 +126,7 @@ ApplicationWindow {
 
             Rectangle {
                 Layout.fillHeight: true
-                Layout.preferredWidth: 190
+                Layout.preferredWidth: 184
                 color: "#20242c"
 
                 ColumnLayout {
@@ -95,35 +150,37 @@ ApplicationWindow {
                         text: qsTr("Notizen")
                         checkable: true
                         checked: window.currentSection === "notes"
-                        onClicked: window.currentSection = "notes"
-                        Accessible.name: qsTr("Alle Notizen anzeigen")
+                        onClicked: {
+                            window.currentSection = "notes"
+                            noteController.setSection("notes")
+                        }
                     }
-
                     Button {
                         Layout.fillWidth: true
                         text: qsTr("Favoriten")
                         checkable: true
                         checked: window.currentSection === "favorites"
-                        onClicked: window.currentSection = "favorites"
-                        Accessible.name: qsTr("Favoriten anzeigen")
+                        onClicked: {
+                            window.currentSection = "favorites"
+                            noteController.setSection("favorites")
+                        }
                     }
-
                     Button {
                         Layout.fillWidth: true
                         text: qsTr("Kürzlich geöffnet")
                         checkable: true
                         checked: window.currentSection === "recent"
-                        onClicked: window.currentSection = "recent"
-                        Accessible.name: qsTr("Kürzlich geöffnete Notizen anzeigen")
+                        onClicked: {
+                            window.currentSection = "recent"
+                            noteController.setSection("recent")
+                        }
                     }
 
                     Item { Layout.fillHeight: true }
-
                     Label {
-                        Layout.fillWidth: true
                         Layout.leftMargin: 12
                         Layout.bottomMargin: 16
-                        text: qsTr("CrossNote Vorschau")
+                        text: qsTr("CrossNote 0.2")
                         color: "#9ca4b2"
                         font.pixelSize: 12
                     }
@@ -132,52 +189,126 @@ ApplicationWindow {
 
             Rectangle {
                 Layout.fillHeight: true
-                Layout.preferredWidth: 300
+                Layout.preferredWidth: 330
                 color: "#ffffff"
                 border.color: "#e3e7ec"
                 border.width: 1
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 18
-                    spacing: 12
+                    anchors.margins: 14
+                    spacing: 10
 
                     Label {
                         Layout.fillWidth: true
                         text: window.currentSection === "favorites"
                               ? qsTr("Favoriten")
                               : window.currentSection === "recent"
-                                ? qsTr("Kürzlich geöffnet")
-                                : qsTr("Alle Notizen")
+                                ? qsTr("Kürzlich geöffnet") : qsTr("Alle Notizen")
                         color: "#20242c"
                         font.pixelSize: 19
                         font.bold: true
                     }
 
-                    Rectangle {
+                    TextField {
+                        id: searchField
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Notizen durchsuchen")
+                        selectByMouse: true
+                        Accessible.name: qsTr("Notizen nach Titel, Text oder Tag durchsuchen")
+                        onTextChanged: noteController.setSearchQuery(text)
+                    }
+
+                    Button {
+                        Layout.fillWidth: true
+                        text: qsTr("+  Neue Notiz")
+                        highlighted: true
+                        onClicked: {
+                            saveEditor()
+                            noteController.createNote()
+                        }
+                    }
+
+                    ListView {
+                        id: noteList
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        radius: 8
-                        color: "#f7f8fa"
-                        border.color: "#e7eaf0"
+                        clip: true
+                        spacing: 4
+                        model: noteController.noteModel
+                        currentIndex: -1
+                        Accessible.name: qsTr("Notizliste")
+
+                        delegate: ItemDelegate {
+                            required property string noteId
+                            required property string title
+                            required property string preview
+                            required property bool favorite
+                            required property var tags
+                            width: noteList.width
+                            highlighted: noteController.selectedId === noteId
+                            onClicked: {
+                                if (noteController.selectedId !== noteId) {
+                                    saveEditor()
+                                    noteController.openNote(noteId)
+                                }
+                            }
+
+                            contentItem: RowLayout {
+                                spacing: 8
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 3
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: title
+                                        elide: Text.ElideRight
+                                        color: "#252a33"
+                                        font.pixelSize: 14
+                                        font.bold: true
+                                    }
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: preview.length ? preview : qsTr("Leere Notiz")
+                                        elide: Text.ElideRight
+                                        color: "#737c8a"
+                                        font.pixelSize: 12
+                                    }
+                                    Label {
+                                        Layout.fillWidth: true
+                                        visible: tags.length > 0
+                                        text: tags.join("  ·  ")
+                                        elide: Text.ElideRight
+                                        color: "#5369e8"
+                                        font.pixelSize: 10
+                                    }
+                                }
+                                ToolButton {
+                                    text: favorite ? "★" : "☆"
+                                    Accessible.name: favorite ? qsTr("Aus Favoriten entfernen") : qsTr("Zu Favoriten hinzufügen")
+                                    onClicked: noteController.setFavorite(noteId, !favorite)
+                                }
+                            }
+                        }
 
                         Column {
                             anchors.centerIn: parent
                             width: parent.width - 36
-                            spacing: 8
-
+                            spacing: 6
+                            visible: noteList.count === 0
                             Label {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: qsTr("Noch keine Notizen")
+                                text: searchField.text.length ? qsTr("Keine Treffer") : qsTr("Noch keine Notizen")
                                 color: "#3a414d"
                                 font.pixelSize: 15
                                 font.bold: true
                             }
-
                             Label {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 width: parent.width
-                                text: qsTr("Deine Notizen werden hier angezeigt, sobald die Notizverwaltung eingerichtet ist.")
+                                text: searchField.text.length
+                                      ? qsTr("Versuche einen anderen Suchbegriff.")
+                                      : qsTr("Erstelle deine erste Notiz mit der Schaltfläche oben.")
                                 color: "#737c8a"
                                 font.pixelSize: 13
                                 wrapMode: Text.WordWrap
@@ -188,31 +319,121 @@ ApplicationWindow {
                 }
             }
 
-            Item {
+            ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.margins: 24
+                spacing: 14
 
-                Column {
-                    anchors.centerIn: parent
-                    width: Math.min(parent.width - 48, 460)
-                    spacing: 12
-
-                    Label {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: qsTr("Willkommen bei CrossNote")
-                        color: "#20242c"
-                        font.pixelSize: 27
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    TextField {
+                        id: titleField
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Notiztitel")
+                        font.pixelSize: 25
                         font.bold: true
+                        enabled: noteController.hasSelection
+                        background: Rectangle { color: "transparent"; border.width: 0 }
+                        onTextEdited: saveTimer.restart()
+                    }
+                    Button {
+                        text: window.previewMode ? qsTr("Bearbeiten") : qsTr("Vorschau")
+                        enabled: noteController.hasSelection
+                        onClicked: {
+                            saveEditor()
+                            window.previewMode = !window.previewMode
+                        }
+                    }
+                    Button {
+                        text: qsTr("Löschen")
+                        enabled: noteController.hasSelection
+                        onClicked: deleteDialog.open()
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: 10
+                    color: "#ffffff"
+                    border.color: "#e3e7ec"
+
+                    TextArea {
+                        id: bodyEditor
+                        anchors.fill: parent
+                        anchors.margins: 20
+                        visible: !window.previewMode
+                        enabled: noteController.hasSelection
+                        placeholderText: qsTr("Schreibe deine Notiz in Markdown …")
+                        wrapMode: TextEdit.Wrap
+                        selectByMouse: true
+                        persistentSelection: true
+                        font.family: "monospace"
+                        font.pixelSize: 15
+                        background: null
+                        Accessible.name: qsTr("Markdown-Editor")
+                        onTextChanged: {
+                            if (activeFocus)
+                                saveTimer.restart()
+                        }
                     }
 
+                    Flickable {
+                        anchors.fill: parent
+                        anchors.margins: 22
+                        clip: true
+                        visible: window.previewMode && noteController.hasSelection
+                        contentWidth: width
+                        contentHeight: renderedMarkdown.implicitHeight
+                        Text {
+                            id: renderedMarkdown
+                            width: parent.width
+                            textFormat: Text.MarkdownText
+                            text: "# " + titleField.text + "\n\n" + bodyEditor.text
+                            color: "#252a33"
+                            font.pixelSize: 16
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+
+                    Column {
+                        anchors.centerIn: parent
+                        width: Math.min(parent.width - 48, 440)
+                        spacing: 10
+                        visible: !noteController.hasSelection
+                        Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: qsTr("Dein Notizbereich")
+                            color: "#20242c"
+                            font.pixelSize: 25
+                            font.bold: true
+                        }
+                        Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: parent.width
+                            text: qsTr("Erstelle eine Notiz oder wähle links eine vorhandene aus. Deine Markdown-Dateien bleiben in deinem Vault.")
+                            color: "#687181"
+                            font.pixelSize: 15
+                            wrapMode: Text.WordWrap
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
                     Label {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        width: parent.width
-                        text: qsTr("Wähle links einen Bereich aus. In der nächsten Entwicklungsphase kannst du hier Notizen erstellen und bearbeiten.")
+                        Layout.fillWidth: true
+                        text: noteController.errorText.length ? noteController.errorText : noteController.statusText
+                        color: noteController.errorText.length ? "#b42318" : "#687181"
+                        elide: Text.ElideRight
+                        Accessible.live: Accessible.Polite
+                    }
+                    Label {
+                        text: noteController.hasSelection ? qsTr("%1 Wörter").arg(bodyEditor.text.trim().length ? bodyEditor.text.trim().split(/\\s+/).length : 0) : ""
                         color: "#687181"
-                        font.pixelSize: 15
-                        wrapMode: Text.WordWrap
-                        horizontalAlignment: Text.AlignHCenter
                     }
                 }
             }
@@ -224,13 +445,12 @@ ApplicationWindow {
             color: "#ffffff"
             border.color: "#e3e7ec"
             border.width: 1
-
             Label {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
                 anchors.leftMargin: 16
-                text: qsTr("Bereit")
-                color: "#687181"
+                text: noteController.errorText.length ? qsTr("Aktion fehlgeschlagen") : noteController.statusText
+                color: noteController.errorText.length ? "#b42318" : "#687181"
                 font.pixelSize: 12
             }
         }
