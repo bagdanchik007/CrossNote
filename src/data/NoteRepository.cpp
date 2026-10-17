@@ -474,3 +474,55 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
     emit notesChanged();
     return created;
 }
+bool NoteRepository::saveNote(const QString &id, const QString &title,
+                              const QString &content, QString *error)
+{
+    auto current = note(id, true, error);
+    if (!current)
+        return false;
+
+    const QString cleanTitle = title.trimmed().isEmpty() ? QStringLiteral("Unbenannte Notiz") : title.trimmed();
+    QString targetPath = current->relativePath;
+    if (safeFileStem(cleanTitle) != QFileInfo(targetPath).completeBaseName()) {
+        const QString stem = safeFileStem(cleanTitle);
+        targetPath = stem + QStringLiteral(".md");
+        int suffix = 2;
+        while (QFileInfo::exists(QDir(m_impl->vault).filePath(targetPath))
+               && targetPath != current->relativePath) {
+            targetPath = QStringLiteral("%1-%2.md").arg(stem).arg(suffix++);
+        }
+    }
+
+    const QString targetAbsolute = QDir(m_impl->vault).filePath(targetPath);
+    QSaveFile file(targetAbsolute);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        if (error) *error = file.errorString();
+        return false;
+    }
+    const QByteArray bytes = markdownForNote(id, cleanTitle, content, current->tags,
+                                              current->frontMatter).toUtf8();
+    if (file.write(bytes) != bytes.size() || !file.commit()) {
+        if (error) *error = file.errorString();
+        return false;
+    }
+
+    const QDateTime now = QDateTime::currentDateTimeUtc();
+    QSqlQuery update(m_impl->database);
+    update.prepare(QStringLiteral("UPDATE notes SET title = ?, relative_path = ?, updated_at = ? WHERE id = ?"));
+    update.addBindValue(cleanTitle);
+    update.addBindValue(targetPath);
+    update.addBindValue(now.toMSecsSinceEpoch());
+    update.addBindValue(id);
+    if (!update.exec() || update.numRowsAffected() != 1) {
+        if (targetPath != current->relativePath)
+            QFile::remove(targetAbsolute);
+        if (error) *error = update.lastError().text().isEmpty()
+            ? QStringLiteral("Die Notiz wurde während des Speicherns geändert.") : sqlError(update);
+        return false;
+    }
+    if (targetPath != current->relativePath)
+        QFile::remove(QDir(m_impl->vault).filePath(current->relativePath));
+
+    emit notesChanged();
+    return true;
+}
