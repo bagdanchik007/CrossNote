@@ -13,6 +13,7 @@
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStandardPaths>
+#include <QSet>
 #include <QUuid>
 
 namespace CrossNote {
@@ -273,4 +274,107 @@ std::optional<Note> NoteRepository::note(const QString &id, bool includeContent,
         result.frontMatter = parsed.frontMatter;
     }
     return result;
+}
+bool NoteRepository::refresh(QString *error)
+{
+    if (!m_impl->database.isOpen()) {
+        if (error) *error = QStringLiteral("Der Notizordner ist noch nicht geöffnet.");
+        return false;
+    }
+
+    QSqlQuery transaction(m_impl->database);
+    if (!transaction.exec(QStringLiteral("BEGIN IMMEDIATE"))) {
+        if (error) *error = sqlError(transaction);
+        return false;
+    }
+
+    QSet<QString> seenPaths;
+    QDirIterator iterator(m_impl->vault, {QStringLiteral("*.md")}, QDir::Files,
+                          QDirIterator::Subdirectories);
+    while (iterator.hasNext()) {
+        const QString absolutePath = iterator.next();
+        const QString relativePath = QDir(m_impl->vault).relativeFilePath(absolutePath);
+        if (relativePath.startsWith(QStringLiteral(".trash/"))
+            || relativePath.contains(QStringLiteral("/.trash/")))
+            continue;
+        seenPaths.insert(relativePath);
+
+        QFile file(absolutePath);
+        if (!file.open(QIODevice::ReadOnly))
+            continue;
+        const QString text = QString::fromUtf8(file.readAll());
+        QFileInfo info(file);
+        file.close();
+
+        QString existingId;
+        qint64 createdAt = info.birthTime().toUTC().toMSecsSinceEpoch();
+        bool favorite = false;
+        QStringList tags;
+        QSqlQuery existing(m_impl->database);
+        existing.prepare(QStringLiteral("SELECT id, created_at, favorite, tags FROM notes WHERE relative_path = ?"));
+        existing.addBindValue(relativePath);
+        if (existing.exec() && existing.next()) {
+            existingId = existing.value(0).toString();
+            createdAt = existing.value(1).toLongLong();
+            favorite = existing.value(2).toBool();
+            tags = parseTags(existing.value(3).toString());
+        }
+
+        const Note parsed = parseMarkdownFile(text, existingId, info.completeBaseName(), relativePath);
+        const QString id = parsed.id.isEmpty()
+            ? QUuid::createUuid().toString(QUuid::WithoutBraces) : parsed.id;
+        if (createdAt <= 0)
+            createdAt = info.lastModified().toUTC().toMSecsSinceEpoch();
+        if (!parsed.tags.isEmpty())
+            tags = parsed.tags;
+
+        QSqlQuery upsert(m_impl->database);
+        upsert.prepare(QStringLiteral(
+            "INSERT INTO notes (id, title, relative_path, created_at, updated_at, favorite, tags) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(id) DO UPDATE SET title=excluded.title, relative_path=excluded.relative_path, "
+            "updated_at=excluded.updated_at, tags=excluded.tags"));
+        upsert.addBindValue(id);
+        upsert.addBindValue(parsed.title.trimmed().isEmpty() ? info.completeBaseName() : parsed.title);
+        upsert.addBindValue(relativePath);
+        upsert.addBindValue(createdAt);
+        upsert.addBindValue(info.lastModified().toUTC().toMSecsSinceEpoch());
+        upsert.addBindValue(favorite);
+        upsert.addBindValue(normalizedTags(tags));
+        if (!upsert.exec()) {
+            transaction.exec(QStringLiteral("ROLLBACK"));
+            if (error) *error = sqlError(upsert);
+            return false;
+        }
+    }
+
+    QSqlQuery allPaths(m_impl->database);
+    if (!allPaths.exec(QStringLiteral("SELECT relative_path FROM notes"))) {
+        transaction.exec(QStringLiteral("ROLLBACK"));
+        if (error) *error = sqlError(allPaths);
+        return false;
+    }
+    QStringList stalePaths;
+    while (allPaths.next()) {
+        const QString path = allPaths.value(0).toString();
+        if (!seenPaths.contains(path))
+            stalePaths.append(path);
+    }
+    for (const QString &path : stalePaths) {
+        QSqlQuery remove(m_impl->database);
+        remove.prepare(QStringLiteral("DELETE FROM notes WHERE relative_path = ?"));
+        remove.addBindValue(path);
+        if (!remove.exec()) {
+            transaction.exec(QStringLiteral("ROLLBACK"));
+            if (error) *error = sqlError(remove);
+            return false;
+        }
+    }
+
+    if (!transaction.exec(QStringLiteral("COMMIT"))) {
+        if (error) *error = sqlError(transaction);
+        return false;
+    }
+    emit notesChanged();
+    return true;
 }
