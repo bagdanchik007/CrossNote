@@ -91,7 +91,7 @@ void NoteListModel::setSection(const QString &section)
     const QString normalized = section.trimmed().toLower();
     if (normalized != QStringLiteral("notes")
         && normalized != QStringLiteral("favorites")
-        && normalized != QStringLiteral("recent")) {
+        && normalized != QStringLiteral("recent") && normalized != QStringLiteral("trash")) {
         return;
     }
     if (m_section == normalized)

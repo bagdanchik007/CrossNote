@@ -225,6 +225,38 @@ bool NoteRepository::openVault(const QString &vaultPath, QString *error)
 
 QString NoteRepository::vaultPath() const { return m_impl->vault; }
 QVector<Note> NoteRepository::notes(QString *error) const { return m_impl->list(error); }
+
+QVector<Note> NoteRepository::trashedNotes(QString *error) const
+{
+    QVector<Note> result;
+    QSqlQuery query(m_impl->database);
+    query.prepare(QStringLiteral("SELECT id, title, trash_path, created_at, updated_at, last_opened_at, favorite, tags FROM trashed_notes ORDER BY deleted_at DESC"));
+    if (!query.exec()) {
+        if (error) *error = sqlError(query);
+        return result;
+    }
+    while (query.next()) {
+        Note item;
+        item.id = query.value(0).toString();
+        item.title = query.value(1).toString();
+        item.relativePath = query.value(2).toString();
+        item.createdAt = QDateTime::fromMSecsSinceEpoch(query.value(3).toLongLong(), Qt::UTC);
+        item.updatedAt = QDateTime::fromMSecsSinceEpoch(query.value(4).toLongLong(), Qt::UTC);
+        if (!query.value(5).isNull())
+            item.lastOpenedAt = QDateTime::fromMSecsSinceEpoch(query.value(5).toLongLong(), Qt::UTC);
+        item.favorite = query.value(6).toBool();
+        item.tags = parseTags(query.value(7).toString());
+        const QString absolute = safeAbsolutePath(m_impl->vault, item.relativePath);
+        QFile file(absolute);
+        if (absolute.isEmpty() || !file.open(QIODevice::ReadOnly))
+            continue;
+        const QByteArray bytes = file.readAll();
+        item.content = QString::fromUtf8(bytes);
+        item.contentHash = QCryptographicHash::hash(bytes, QCryptographicHash::Sha256);
+        result.append(std::move(item));
+    }
+    return result;
+}
 namespace {
 
 Note parseMarkdownFile(const QString &text, const QString &fallbackId,
@@ -336,9 +368,11 @@ bool NoteRepository::refresh(QString *error)
     while (iterator.hasNext()) {
         const QString absolutePath = iterator.next();
         QString relativePath = QDir(m_impl->vault).relativeFilePath(absolutePath);
-        relativePath.replace(QDir::separator(), u'/' );
+        relativePath.replace(QDir::separator(), u'/');
         if (relativePath.startsWith(QStringLiteral(".trash/"))
-            || relativePath.contains(QStringLiteral("/.trash/")))
+            || relativePath.contains(QStringLiteral("/.trash/"))
+            || relativePath.startsWith(QStringLiteral(".conflicts/"))
+            || relativePath.contains(QStringLiteral("/.conflicts/")))
             continue;
         seenPaths.insert(relativePath);
 
@@ -403,6 +437,7 @@ bool NoteRepository::refresh(QString *error)
         if (!seenPaths.contains(path))
             stalePaths.append(path);
     }
+    allPaths.finish();
     for (const QString &path : stalePaths) {
         QSqlQuery remove(m_impl->database);
         remove.prepare(QStringLiteral("DELETE FROM notes WHERE relative_path = ?"));
@@ -622,6 +657,7 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
     if (targetPath != current->relativePath)
         QFile::remove(QDir(m_impl->vault).filePath(current->relativePath));
 
+    updateWatcherPaths();
     emit notesChanged();
     return true;
 }
@@ -689,11 +725,18 @@ bool NoteRepository::moveToTrash(const QString &id, QString *error)
         return false;
     }
 
+    const QString noteTitle = lookup.value(0).toString();
     const QString originalPath = lookup.value(1).toString();
+    const QVariant createdAt = lookup.value(2);
+    const QVariant updatedAt = lookup.value(3);
+    const QVariant lastOpenedAt = lookup.value(4);
+    const QVariant favorite = lookup.value(5);
+    const QVariant tags = lookup.value(6);
+    lookup.finish();
     const QString trashPath = QStringLiteral(".trash/%1.md").arg(id);
-    const QString absoluteOriginal = QDir(m_impl->vault).filePath(originalPath);
+    const QString absoluteOriginal = safeAbsolutePath(m_impl->vault, originalPath);
     const QString absoluteTrash = QDir(m_impl->vault).filePath(trashPath);
-    if (QFileInfo::exists(absoluteTrash) || !QFile::rename(absoluteOriginal, absoluteTrash)) {
+    if (absoluteOriginal.isEmpty() || QFileInfo::exists(absoluteTrash) || !QFile::rename(absoluteOriginal, absoluteTrash)) {
         if (error) *error = QStringLiteral("Die Notiz kann nicht in den Papierkorb verschoben werden.");
         return false;
     }
@@ -707,14 +750,14 @@ bool NoteRepository::moveToTrash(const QString &id, QString *error)
     insert.prepare(QStringLiteral("INSERT INTO trashed_notes (id, title, relative_path, trash_path, created_at, updated_at, last_opened_at, favorite, tags, deleted_at) "
                                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
     insert.addBindValue(id);
-    insert.addBindValue(lookup.value(0));
+    insert.addBindValue(noteTitle);
     insert.addBindValue(originalPath);
     insert.addBindValue(trashPath);
-    insert.addBindValue(lookup.value(2));
-    insert.addBindValue(lookup.value(3));
-    insert.addBindValue(lookup.value(4));
-    insert.addBindValue(lookup.value(5));
-    insert.addBindValue(lookup.value(6));
+    insert.addBindValue(createdAt);
+    insert.addBindValue(updatedAt);
+    insert.addBindValue(lastOpenedAt);
+    insert.addBindValue(favorite);
+    insert.addBindValue(tags);
     insert.addBindValue(QDateTime::currentDateTimeUtc().toMSecsSinceEpoch());
     QSqlQuery remove(m_impl->database);
     remove.prepare(QStringLiteral("DELETE FROM notes WHERE id = ?"));
@@ -727,6 +770,7 @@ bool NoteRepository::moveToTrash(const QString &id, QString *error)
         if (error) *error = message;
         return false;
     }
+    updateWatcherPaths();
     emit notesChanged();
     return true;
 }
@@ -758,9 +802,10 @@ bool NoteRepository::restoreFromTrash(const QString &id, QString *error)
             restoredPath = QStringLiteral("%1-%2.md").arg(stem).arg(suffix++);
         } while (QFileInfo::exists(QDir(m_impl->vault).filePath(restoredPath)));
     }
-    const QString absoluteTrash = QDir(m_impl->vault).filePath(trashPath);
-    const QString absoluteRestored = QDir(m_impl->vault).filePath(restoredPath);
-    if (!QFile::rename(absoluteTrash, absoluteRestored)) {
+    const QString absoluteTrash = safeAbsolutePath(m_impl->vault, trashPath);
+    const QString absoluteRestored = safeAbsolutePath(m_impl->vault, restoredPath);
+    if (absoluteTrash.isEmpty() || absoluteRestored.isEmpty()
+        || !QFile::rename(absoluteTrash, absoluteRestored)) {
         if (error) *error = QStringLiteral("Die Notiz konnte nicht wiederhergestellt werden.");
         return false;
     }
@@ -792,6 +837,7 @@ bool NoteRepository::restoreFromTrash(const QString &id, QString *error)
         if (error) *error = message;
         return false;
     }
+    updateWatcherPaths();
     emit notesChanged();
     return true;
 }

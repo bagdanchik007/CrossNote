@@ -17,6 +17,12 @@ ApplicationWindow {
     title: qsTr("CrossNote")
     color: "#f3f5f8"
 
+    function safeMarkdown(title, body) {
+        var safeBody = body.replace(/!\[([^\]]*)\](?:\([^)]*\)|\[[^\]]*\])/g, "[$1]")
+        safeBody = safeBody.replace(/<img\b[^>]*>/gi, "")
+        safeBody = safeBody.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+        return "# " + title + "\n\n" + safeBody
+    }
     function saveEditor() {
         if (noteController.hasSelection)
             noteController.saveCurrent(titleField.text, bodyEditor.text)
@@ -155,6 +161,7 @@ ApplicationWindow {
                         checkable: true
                         checked: window.currentSection === "notes"
                         onClicked: {
+                            saveEditor()
                             window.currentSection = "notes"
                             noteController.setSection("notes")
                         }
@@ -165,6 +172,7 @@ ApplicationWindow {
                         checkable: true
                         checked: window.currentSection === "favorites"
                         onClicked: {
+                            saveEditor()
                             window.currentSection = "favorites"
                             noteController.setSection("favorites")
                         }
@@ -175,8 +183,20 @@ ApplicationWindow {
                         checkable: true
                         checked: window.currentSection === "recent"
                         onClicked: {
+                            saveEditor()
                             window.currentSection = "recent"
                             noteController.setSection("recent")
+                        }
+                    }
+                    Button {
+                        Layout.fillWidth: true
+                        text: qsTr("Papierkorb")
+                        checkable: true
+                        checked: window.currentSection === "trash"
+                        onClicked: {
+                            saveEditor()
+                            window.currentSection = "trash"
+                            noteController.setSection("trash")
                         }
                     }
 
@@ -208,7 +228,8 @@ ApplicationWindow {
                         text: window.currentSection === "favorites"
                               ? qsTr("Favoriten")
                               : window.currentSection === "recent"
-                                ? qsTr("Kürzlich geöffnet") : qsTr("Alle Notizen")
+                                ? qsTr("Kürzlich geöffnet")
+                                : window.currentSection === "trash" ? qsTr("Papierkorb") : qsTr("Alle Notizen")
                         color: "#20242c"
                         font.pixelSize: 19
                         font.bold: true
@@ -252,7 +273,7 @@ ApplicationWindow {
                             width: noteList.width
                             highlighted: noteController.selectedId === noteId
                             onClicked: {
-                                if (noteController.selectedId !== noteId) {
+                                if (window.currentSection !== "trash" && noteController.selectedId !== noteId) {
                                     saveEditor()
                                     noteController.openNote(noteId)
                                 }
@@ -288,9 +309,9 @@ ApplicationWindow {
                                     }
                                 }
                                 ToolButton {
-                                    text: favorite ? "★" : "☆"
-                                    Accessible.name: favorite ? qsTr("Aus Favoriten entfernen") : qsTr("Zu Favoriten hinzufügen")
-                                    onClicked: noteController.setFavorite(noteId, !favorite)
+                                    text: window.currentSection === "trash" ? "↩" : (favorite ? "★" : "☆")
+                                    Accessible.name: window.currentSection === "trash" ? qsTr("Notiz wiederherstellen") : (favorite ? qsTr("Aus Favoriten entfernen") : qsTr("Zu Favoriten hinzufügen"))
+                                    onClicked: window.currentSection === "trash" ? noteController.restoreFromTrash(noteId) : noteController.setFavorite(noteId, !favorite)
                                 }
                             }
                         }
@@ -302,7 +323,7 @@ ApplicationWindow {
                             visible: noteList.count === 0
                             Label {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: searchField.text.length ? qsTr("Keine Treffer") : qsTr("Noch keine Notizen")
+                                text: window.currentSection === "trash" ? qsTr("Papierkorb ist leer") : (searchField.text.length ? qsTr("Keine Treffer") : qsTr("Noch keine Notizen"))
                                 color: "#3a414d"
                                 font.pixelSize: 15
                                 font.bold: true
@@ -406,7 +427,7 @@ ApplicationWindow {
                             id: renderedMarkdown
                             width: parent.width
                             textFormat: Text.MarkdownText
-                            text: "# " + titleField.text + "\n\n" + bodyEditor.text
+                            text: window.safeMarkdown(titleField.text, bodyEditor.text)
                             color: "#252a33"
                             font.pixelSize: 16
                             wrapMode: Text.WordWrap

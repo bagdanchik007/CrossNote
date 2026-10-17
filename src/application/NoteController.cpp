@@ -13,6 +13,8 @@ NoteController::NoteController(QObject *parent)
             this, &NoteController::reloadNotes);
     connect(&m_repository, &NoteRepository::errorOccurred,
             this, &NoteController::setError);
+    connect(&m_repository, &NoteRepository::externalVersionBackedUp, this,
+            [this](const QString &path) { m_conflictPath = path; });
 }
 
 NoteListModel *NoteController::noteModel() { return &m_noteModel; }
@@ -166,7 +168,20 @@ void NoteController::setTags(const QString &id, const QStringList &tags)
 }
 
 void NoteController::setSearchQuery(const QString &query) { m_noteModel.setQuery(query); }
-void NoteController::setSection(const QString &section) { m_noteModel.setSection(section); }
+void NoteController::setSection(const QString &section)
+{
+    m_noteModel.setSection(section);
+    if (m_noteModel.section() == QStringLiteral("trash")) {
+        m_selectedId.clear();
+        m_selectedTitle.clear();
+        m_selectedContent.clear();
+        m_selectedHash.clear();
+        m_selectedTags.clear();
+        emit selectedTagsChanged();
+        emit currentNoteChanged();
+    }
+    reloadNotes();
+}
 
 void NoteController::restoreFromTrash(const QString &id)
 {
@@ -182,7 +197,8 @@ void NoteController::restoreFromTrash(const QString &id)
 void NoteController::reloadNotes()
 {
     QString error;
-    const QVector<Note> items = m_repository.notes(&error);
+    const QVector<Note> items = m_noteModel.section() == QStringLiteral("trash")
+        ? m_repository.trashedNotes(&error) : m_repository.notes(&error);
     m_noteModel.setNotes(items);
     if (!error.isEmpty())
         setError(error);

@@ -19,6 +19,7 @@ jobs:
           host: 'linux'
           target: 'desktop'
           arch: 'linux_gcc_64'
+          install-deps: true
       - name: Configure
         run: cmake --preset debug
       - name: Build

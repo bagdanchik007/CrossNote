@@ -25,6 +25,7 @@ public:
     [[nodiscard]] bool openVault(const QString &vaultPath, QString *error = nullptr);
     [[nodiscard]] QString vaultPath() const;
     [[nodiscard]] QVector<Note> notes(QString *error = nullptr) const;
+    [[nodiscard]] QVector<Note> trashedNotes(QString *error = nullptr) const;
     [[nodiscard]] std::optional<Note> note(const QString &id, bool includeContent = true,
                                            QString *error = nullptr) const;
 

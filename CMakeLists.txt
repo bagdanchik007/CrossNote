@@ -20,8 +20,15 @@ qt_add_executable(crossnote
     src/presentation/NoteListModel.h
 )
 
+qt_add_qml_module(crossnote
+    URI CrossNote
+    VERSION 1.0
+    QML_FILES
+        qml/Main.qml
+)
+
 target_include_directories(crossnote PRIVATE src)
-target_link_libraries(crossnote PRIVATE Qt6::Sql)
+target_link_libraries(crossnote PRIVATE Qt6::Quick Qt6::Sql)
 
 target_compile_options(crossnote PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4>
