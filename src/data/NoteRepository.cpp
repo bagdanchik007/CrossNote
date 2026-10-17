@@ -841,3 +841,5 @@ bool NoteRepository::restoreFromTrash(const QString &id, QString *error)
     emit notesChanged();
     return true;
 }
+
+} // namespace CrossNote
