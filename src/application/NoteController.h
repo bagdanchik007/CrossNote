@@ -16,6 +16,7 @@ class NoteController final : public QObject
     Q_PROPERTY(QString selectedId READ selectedId NOTIFY currentNoteChanged)
     Q_PROPERTY(QString selectedTitle READ selectedTitle NOTIFY currentNoteChanged)
     Q_PROPERTY(QString selectedContent READ selectedContent NOTIFY currentNoteChanged)
+    Q_PROPERTY(QStringList selectedTags READ selectedTags NOTIFY selectedTagsChanged)
     Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY currentNoteChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
     Q_PROPERTY(QString errorText READ errorText NOTIFY errorTextChanged)
@@ -28,6 +29,7 @@ public:
     [[nodiscard]] QString selectedId() const;
     [[nodiscard]] QString selectedTitle() const;
     [[nodiscard]] QString selectedContent() const;
+    [[nodiscard]] QStringList selectedTags() const;
     [[nodiscard]] bool hasSelection() const;
     [[nodiscard]] QString statusText() const;
     [[nodiscard]] QString errorText() const;
@@ -47,6 +49,7 @@ public:
 signals:
     void vaultPathChanged();
     void currentNoteChanged();
+    void selectedTagsChanged();
     void statusTextChanged();
     void errorTextChanged();
 
@@ -61,6 +64,7 @@ private:
     QString m_selectedId;
     QString m_selectedTitle;
     QString m_selectedContent;
+    QStringList m_selectedTags;
     QString m_statusText;
     QString m_errorText;
 };

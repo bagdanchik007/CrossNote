@@ -20,6 +20,7 @@ QString NoteController::vaultPath() const { return m_repository.vaultPath(); }
 QString NoteController::selectedId() const { return m_selectedId; }
 QString NoteController::selectedTitle() const { return m_selectedTitle; }
 QString NoteController::selectedContent() const { return m_selectedContent; }
+QStringList NoteController::selectedTags() const { return m_selectedTags; }
 bool NoteController::hasSelection() const { return !m_selectedId.isEmpty(); }
 QString NoteController::statusText() const { return m_statusText; }
 QString NoteController::errorText() const { return m_errorText; }
@@ -53,6 +54,7 @@ void NoteController::setVaultPath(const QString &path)
     m_selectedId.clear();
     m_selectedTitle.clear();
     m_selectedContent.clear();
+    m_selectedTags.clear();
     emit vaultPathChanged();
     emit currentNoteChanged();
     reloadNotes();
@@ -85,6 +87,8 @@ void NoteController::openNote(const QString &id)
     m_selectedId = selected->id;
     m_selectedTitle = selected->title;
     m_selectedContent = selected->content;
+    m_selectedTags = selected->tags;
+    emit selectedTagsChanged();
     m_repository.markOpened(id, &error);
     emit currentNoteChanged();
     clearError();
@@ -119,6 +123,7 @@ void NoteController::deleteCurrent()
     m_selectedId.clear();
     m_selectedTitle.clear();
     m_selectedContent.clear();
+    m_selectedTags.clear();
     emit currentNoteChanged();
     clearError();
     setStatus(tr("Notiz in den Papierkorb verschoben"));
