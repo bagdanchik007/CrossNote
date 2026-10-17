@@ -378,3 +378,99 @@ bool NoteRepository::refresh(QString *error)
     emit notesChanged();
     return true;
 }
+namespace {
+
+QString safeFileStem(const QString &title)
+{
+    QString result = title.simplified();
+    result.replace(QRegularExpression(QStringLiteral("[\\\\/:*?\"<>|]")), QStringLiteral("-"));
+    result.replace(QRegularExpression(QStringLiteral("\\s+")), QStringLiteral("-"));
+    result.remove(QRegularExpression(QStringLiteral("^[. -]+|[. -]+$")));
+    if (result.isEmpty())
+        result = QStringLiteral("Neue-Notiz");
+    return result.left(80);
+}
+
+QString markdownForNote(const QString &id, const QString &title, const QString &content,
+                        const QStringList &tags, const QString &existingFrontMatter = {})
+{
+    QStringList metadataLines;
+    if (existingFrontMatter.startsWith(QStringLiteral("---"))) {
+        const qsizetype end = existingFrontMatter.lastIndexOf(QStringLiteral("---"));
+        if (end > 2) {
+            const QString body = existingFrontMatter.mid(3, end - 3);
+            const QStringList previous = body.split(u'\n');
+            bool skippingTagLines = false;
+            for (const QString &line : previous) {
+                if (line.trimmed().startsWith(QStringLiteral("id:"), Qt::CaseInsensitive))
+                    continue;
+                if (line.trimmed().startsWith(QStringLiteral("tags:"), Qt::CaseInsensitive)) {
+                    skippingTagLines = true;
+                    continue;
+                }
+                if (skippingTagLines && (line.trimmed().startsWith(QStringLiteral("- ")) || line.trimmed().isEmpty()))
+                    continue;
+                skippingTagLines = false;
+                if (!line.trimmed().isEmpty())
+                    metadataLines.append(line);
+            }
+        }
+    }
+    metadataLines.append(QStringLiteral("id: %1").arg(id));
+    const QByteArray tagsJson = QJsonDocument(QJsonArray::fromStringList(tags)).toJson(QJsonDocument::Compact);
+    metadataLines.append(QStringLiteral("tags: %1").arg(QString::fromUtf8(tagsJson)));
+    return QStringLiteral("---\n%1\n---\n\n# %2\n\n%3\n")
+        .arg(metadataLines.join(u'\n'), title.trimmed(), content.trimmed());
+}
+
+} // namespace
+
+std::optional<Note> NoteRepository::createNote(const QString &title, QString *error)
+{
+    if (m_impl->vault.isEmpty()) {
+        if (error) *error = QStringLiteral("Öffne zuerst einen Notizordner.");
+        return std::nullopt;
+    }
+
+    const QString cleanTitle = title.trimmed().isEmpty() ? QStringLiteral("Neue Notiz") : title.trimmed();
+    const QString stem = safeFileStem(cleanTitle);
+    QString relativePath = stem + QStringLiteral(".md");
+    for (int suffix = 2; QFileInfo::exists(QDir(m_impl->vault).filePath(relativePath)); ++suffix)
+        relativePath = QStringLiteral("%1-%2.md").arg(stem).arg(suffix);
+
+    const QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    const QDateTime now = QDateTime::currentDateTimeUtc();
+    QSaveFile file(QDir(m_impl->vault).filePath(relativePath));
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        if (error) *error = file.errorString();
+        return std::nullopt;
+    }
+    const QByteArray contents = markdownForNote(id, cleanTitle, {}, {}).toUtf8();
+    if (file.write(contents) != contents.size() || !file.commit()) {
+        if (error) *error = file.errorString();
+        return std::nullopt;
+    }
+
+    QSqlQuery insert(m_impl->database);
+    insert.prepare(QStringLiteral("INSERT INTO notes (id, title, relative_path, created_at, updated_at, favorite, tags) "
+                                  "VALUES (?, ?, ?, ?, ?, 0, '[]')"));
+    insert.addBindValue(id);
+    insert.addBindValue(cleanTitle);
+    insert.addBindValue(relativePath);
+    insert.addBindValue(now.toMSecsSinceEpoch());
+    insert.addBindValue(now.toMSecsSinceEpoch());
+    if (!insert.exec()) {
+        QFile::remove(QDir(m_impl->vault).filePath(relativePath));
+        if (error) *error = sqlError(insert);
+        return std::nullopt;
+    }
+
+    Note created;
+    created.id = id;
+    created.title = cleanTitle;
+    created.relativePath = relativePath;
+    created.createdAt = now;
+    created.updatedAt = now;
+    emit notesChanged();
+    return created;
+}
