@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Quick)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Quick Sql)
 qt_standard_project_setup(REQUIRES 6.5)
 
 qt_add_executable(crossnote
@@ -20,7 +20,7 @@ qt_add_qml_module(crossnote
         qml/Main.qml
 )
 
-target_compile_options(crossnote PRIVATE
+target_include_directories(crossnote PRIVATE src)`r`ntarget_link_libraries(crossnote PRIVATE Qt6::Sql)`r`n`r`ntarget_compile_options(crossnote PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4>
     $<$<CXX_COMPILER_ID:MSVC>:/permissive->
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>
