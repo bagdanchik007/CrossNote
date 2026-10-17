@@ -2,7 +2,9 @@
 
 #include "domain/Note.h"
 
+#include <QFileSystemWatcher>
 #include <QObject>
+#include <QTimer>
 #include <QString>
 #include <QVector>
 
@@ -28,7 +30,7 @@ public:
 
     [[nodiscard]] std::optional<Note> createNote(const QString &title, QString *error = nullptr);
     [[nodiscard]] bool saveNote(const QString &id, const QString &title,
-                                const QString &content, QString *error = nullptr);
+                                const QString &content, const QByteArray &expectedHash, QString *error = nullptr);
     [[nodiscard]] bool setFavorite(const QString &id, bool favorite,
                                    QString *error = nullptr);
     [[nodiscard]] bool setTags(const QString &id, const QStringList &tags,
@@ -42,10 +44,15 @@ signals:
     void vaultChanged(const QString &path);
     void notesChanged();
     void errorOccurred(const QString &message);
+    void externalVersionBackedUp(const QString &path);
 
 private:
     class Impl;
+    void updateWatcherPaths();
+
     Impl *m_impl = nullptr;
+    QFileSystemWatcher m_watcher;
+    QTimer m_refreshTimer;
 };
 
 } // namespace CrossNote

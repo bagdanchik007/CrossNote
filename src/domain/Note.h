@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QByteArray>
 #include <QDateTime>
 #include <QString>
 #include <QStringList>
@@ -13,6 +14,7 @@ struct Note
     QString relativePath;
     QString content;
     QString frontMatter;
+    QByteArray contentHash;
     QStringList tags;
     QDateTime createdAt;
     QDateTime updatedAt;

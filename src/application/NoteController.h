@@ -3,6 +3,7 @@
 #include "data/NoteRepository.h"
 #include "presentation/NoteListModel.h"
 
+#include <QByteArray>
 #include <QObject>
 #include <QString>
 
@@ -64,6 +65,7 @@ private:
     QString m_selectedId;
     QString m_selectedTitle;
     QString m_selectedContent;
+    QByteArray m_selectedHash;
     QStringList m_selectedTags;
     QString m_statusText;
     QString m_errorText;
