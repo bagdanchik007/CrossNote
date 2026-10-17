@@ -59,7 +59,11 @@ ApplicationWindow {
         function onCurrentNoteChanged() {
             titleField.text = noteController.selectedTitle
             bodyEditor.text = noteController.selectedContent
+            tagsField.text = noteController.selectedTags.join(", ")
             window.previewMode = false
+        }
+        function onSelectedTagsChanged() {
+            tagsField.text = noteController.selectedTags.join(", ")
         }
     }
 
