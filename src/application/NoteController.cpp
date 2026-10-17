@@ -54,6 +54,7 @@ void NoteController::setVaultPath(const QString &path)
     m_selectedId.clear();
     m_selectedTitle.clear();
     m_selectedContent.clear();
+    m_selectedHash.clear();
     m_selectedTags.clear();
     emit vaultPathChanged();
     emit currentNoteChanged();
@@ -87,6 +88,7 @@ void NoteController::openNote(const QString &id)
     m_selectedId = selected->id;
     m_selectedTitle = selected->title;
     m_selectedContent = selected->content;
+    m_selectedHash = selected->contentHash;
     m_selectedTags = selected->tags;
     emit selectedTagsChanged();
     m_repository.markOpened(id, &error);
@@ -100,14 +102,21 @@ void NoteController::saveCurrent(const QString &title, const QString &content)
     if (m_selectedId.isEmpty())
         return;
     QString error;
-    if (!m_repository.saveNote(m_selectedId, title, content, &error)) {
+    if (!m_repository.saveNote(m_selectedId, title, content, m_selectedHash, &error)) {
         setError(error);
         return;
     }
     m_selectedTitle = title.trimmed().isEmpty() ? tr("Unbenannte Notiz") : title.trimmed();
     m_selectedContent = content;
+    const auto saved = m_repository.note(m_selectedId, true);
+    if (saved) m_selectedHash = saved->contentHash;
     clearError();
-    setStatus(tr("Gespeichert"));
+    if (!m_conflictPath.isEmpty()) {
+        setStatus(tr("Externe Fassung als Konfliktkopie gesichert: %1").arg(m_conflictPath));
+        m_conflictPath.clear();
+    } else {
+        setStatus(tr("Gespeichert"));
+    }
 }
 
 void NoteController::deleteCurrent()
@@ -123,6 +132,7 @@ void NoteController::deleteCurrent()
     m_selectedId.clear();
     m_selectedTitle.clear();
     m_selectedContent.clear();
+    m_selectedHash.clear();
     m_selectedTags.clear();
     emit currentNoteChanged();
     clearError();

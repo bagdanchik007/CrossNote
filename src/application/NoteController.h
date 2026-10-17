@@ -66,6 +66,7 @@ private:
     QString m_selectedTitle;
     QString m_selectedContent;
     QByteArray m_selectedHash;
+    QString m_conflictPath;
     QStringList m_selectedTags;
     QString m_statusText;
     QString m_errorText;

@@ -199,8 +199,18 @@ public:
 };
 
 NoteRepository::NoteRepository(QObject *parent)
-    : QObject(parent), m_impl(new Impl)
+    : QObject(parent), m_impl(new Impl), m_watcher(this), m_refreshTimer(this)
 {
+    m_refreshTimer.setSingleShot(true);
+    m_refreshTimer.setInterval(250);
+    const auto scheduleRefresh = [this](const QString &) { m_refreshTimer.start(); };
+    connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, scheduleRefresh);
+    connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, scheduleRefresh);
+    connect(&m_refreshTimer, &QTimer::timeout, this, [this] {
+        QString error;
+        if (!refresh(&error) && !error.isEmpty())
+            emit errorOccurred(error);
+    });
 }
 
 NoteRepository::~NoteRepository() { delete m_impl; }
@@ -298,10 +308,12 @@ std::optional<Note> NoteRepository::note(const QString &id, bool includeContent,
             if (error) *error = file.errorString();
             return std::nullopt;
         }
-        const Note parsed = parseMarkdownFile(QString::fromUtf8(file.readAll()), id,
+        const QByteArray fileBytes = file.readAll();
+        const Note parsed = parseMarkdownFile(QString::fromUtf8(fileBytes), id,
                                               result.title, result.relativePath);
         result.content = parsed.content;
         result.frontMatter = parsed.frontMatter;
+        result.contentHash = QCryptographicHash::hash(fileBytes, QCryptographicHash::Sha256);
     }
     return result;
 }
@@ -406,8 +418,41 @@ bool NoteRepository::refresh(QString *error)
         if (error) *error = sqlError(transaction);
         return false;
     }
+    updateWatcherPaths();
     emit notesChanged();
     return true;
+}
+void NoteRepository::updateWatcherPaths()
+{
+    QStringList previous = m_watcher.files();
+    previous.append(m_watcher.directories());
+    if (!previous.isEmpty())
+        m_watcher.removePaths(previous);
+    if (m_impl->vault.isEmpty())
+        return;
+
+    QStringList paths{m_impl->vault};
+    QDirIterator directories(m_impl->vault, QDir::Dirs | QDir::NoDotAndDotDot | QDir::NoSymLinks,
+                             QDirIterator::Subdirectories);
+    while (directories.hasNext()) {
+        const QString directory = directories.next();
+        const QString relative = QDir(m_impl->vault).relativeFilePath(directory).replace(QDir::separator(), u'/');
+        if (relative == QStringLiteral(".trash") || relative.startsWith(QStringLiteral(".trash/"))
+            || relative == QStringLiteral(".conflicts") || relative.startsWith(QStringLiteral(".conflicts/")))
+            continue;
+        paths.append(directory);
+    }
+
+    QDirIterator files(m_impl->vault, {QStringLiteral("*.md")}, QDir::Files | QDir::NoSymLinks,
+                       QDirIterator::Subdirectories);
+    while (files.hasNext()) {
+        const QString file = files.next();
+        const QString relative = QDir(m_impl->vault).relativeFilePath(file).replace(QDir::separator(), u'/');
+        if (!relative.startsWith(QStringLiteral(".trash/"))
+            && !relative.startsWith(QStringLiteral(".conflicts/")))
+            paths.append(file);
+    }
+    m_watcher.addPaths(paths);
 }
 namespace {
 
@@ -502,17 +547,40 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
     created.relativePath = relativePath;
     created.createdAt = now;
     created.updatedAt = now;
+    created.contentHash = QCryptographicHash::hash(contents, QCryptographicHash::Sha256);
     emit notesChanged();
     return created;
 }
 bool NoteRepository::saveNote(const QString &id, const QString &title,
-                              const QString &content, QString *error)
+                              const QString &content, const QByteArray &expectedHash, QString *error)
 {
     auto current = note(id, true, error);
     if (!current)
         return false;
 
     const QString cleanTitle = title.simplified().isEmpty() ? QStringLiteral("Unbenannte Notiz") : title.simplified();
+    if (!expectedHash.isEmpty() && current->contentHash != expectedHash) {
+        const QString conflictRoot = QDir(m_impl->vault).filePath(QStringLiteral(".conflicts"));
+        if (!QDir().mkpath(conflictRoot)) {
+            if (error) *error = QStringLiteral("Die externe Änderung kann nicht gesichert werden.");
+            return false;
+        }
+        const QString conflictName = QStringLiteral("%1-%2.md").arg(id, QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd-HHmmss-zzz")));
+        const QString conflictRelative = QStringLiteral(".conflicts/%1").arg(conflictName);
+        QFile original(QDir(m_impl->vault).filePath(current->relativePath));
+        if (!original.open(QIODevice::ReadOnly)) {
+            if (error) *error = original.errorString();
+            return false;
+        }
+        const QByteArray externalBytes = original.readAll();
+        original.close();
+        QSaveFile backup(QDir(m_impl->vault).filePath(conflictRelative));
+        if (!backup.open(QIODevice::WriteOnly) || backup.write(externalBytes) != externalBytes.size() || !backup.commit()) {
+            if (error) *error = backup.errorString();
+            return false;
+        }
+        emit externalVersionBackedUp(conflictRelative);
+    }
     QString targetPath = current->relativePath;
     if (safeFileStem(cleanTitle) != QFileInfo(targetPath).completeBaseName()) {
         const QString stem = safeFileStem(cleanTitle);
