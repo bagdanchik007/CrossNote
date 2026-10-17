@@ -147,6 +147,10 @@ void NoteController::setTags(const QString &id, const QStringList &tags)
         setError(error);
         return;
     }
+    if (id == m_selectedId) {
+        m_selectedTags = tags;
+        emit selectedTagsChanged();
+    }
     clearError();
     setStatus(tr("Tags gespeichert"));
 }
