@@ -189,3 +189,88 @@ bool NoteRepository::openVault(const QString &vaultPath, QString *error)
 
 QString NoteRepository::vaultPath() const { return m_impl->vault; }
 QVector<Note> NoteRepository::notes(QString *error) const { return m_impl->list(error); }
+namespace {
+
+Note parseMarkdownFile(const QString &text, const QString &fallbackId,
+                       const QString &fallbackTitle, const QString &relativePath)
+{
+    Note result;
+    result.id = fallbackId;
+    result.title = fallbackTitle;
+    result.relativePath = relativePath;
+
+    QString body = text;
+    if (body.startsWith(QStringLiteral("---"))) {
+        const QRegularExpression divider(QStringLiteral("(?:^|\\n)---[ \\t]*(?:\\r?\\n|$)"));
+        const auto match = divider.match(body, 3);
+        if (match.hasMatch()) {
+            result.frontMatter = body.left(match.capturedEnd());
+            const QString metadata = body.mid(3, match.capturedStart() - 3);
+            const auto idMatch = QRegularExpression(QStringLiteral("(?m)^id:\\s*([^\\r\\n]+)"))
+                                     .match(metadata);
+            if (idMatch.hasMatch()) {
+                const QUuid parsedId(idMatch.captured(1).trimmed());
+                if (!parsedId.isNull())
+                    result.id = parsedId.toString(QUuid::WithoutBraces);
+            }
+            const auto tagsMatch = QRegularExpression(QStringLiteral("(?m)^tags:\\s*(\\[[^\\r\\n]*\\])"))
+                                       .match(metadata);
+            if (tagsMatch.hasMatch()) {
+                const QJsonDocument tagsDoc = QJsonDocument::fromJson(tagsMatch.captured(1).toUtf8());
+                for (const QJsonValue &tag : tagsDoc.array()) {
+                    if (tag.isString())
+                        result.tags.append(tag.toString());
+                }
+            }
+            body = body.mid(match.capturedEnd());
+        }
+    }
+
+    const auto heading = QRegularExpression(QStringLiteral("(?m)^#\\s+(.+?)\\s*$")).match(body);
+    if (heading.hasMatch()) {
+        result.title = heading.captured(1).trimmed();
+        body.remove(heading.capturedStart(), heading.capturedLength());
+    }
+    result.content = body.trimmed();
+    return result;
+}
+
+} // namespace
+
+std::optional<Note> NoteRepository::note(const QString &id, bool includeContent, QString *error) const
+{
+    QSqlQuery query(m_impl->database);
+    query.prepare(QStringLiteral("SELECT title, relative_path, created_at, updated_at, "
+                                 "last_opened_at, favorite, tags FROM notes WHERE id = ?"));
+    query.addBindValue(id);
+    if (!query.exec()) {
+        if (error) *error = sqlError(query);
+        return std::nullopt;
+    }
+    if (!query.next())
+        return std::nullopt;
+
+    Note result;
+    result.id = id;
+    result.title = query.value(0).toString();
+    result.relativePath = query.value(1).toString();
+    result.createdAt = QDateTime::fromMSecsSinceEpoch(query.value(2).toLongLong(), Qt::UTC);
+    result.updatedAt = QDateTime::fromMSecsSinceEpoch(query.value(3).toLongLong(), Qt::UTC);
+    if (!query.value(4).isNull())
+        result.lastOpenedAt = QDateTime::fromMSecsSinceEpoch(query.value(4).toLongLong(), Qt::UTC);
+    result.favorite = query.value(5).toBool();
+    result.tags = parseTags(query.value(6).toString());
+
+    if (includeContent) {
+        QFile file(QDir(m_impl->vault).filePath(result.relativePath));
+        if (!file.open(QIODevice::ReadOnly)) {
+            if (error) *error = file.errorString();
+            return std::nullopt;
+        }
+        const Note parsed = parseMarkdownFile(QString::fromUtf8(file.readAll()), id,
+                                              result.title, result.relativePath);
+        result.content = parsed.content;
+        result.frontMatter = parsed.frontMatter;
+    }
+    return result;
+}
