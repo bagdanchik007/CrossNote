@@ -338,6 +338,17 @@ ApplicationWindow {
                         background: Rectangle { color: "transparent"; border.width: 0 }
                         onTextEdited: saveTimer.restart()
                     }
+                    TextField {
+                        id: tagsField
+                        Layout.preferredWidth: 190
+                        placeholderText: qsTr("Tags, mit Komma trennen")
+                        enabled: noteController.hasSelection
+                        Accessible.name: qsTr("Tags der Notiz")
+                        onEditingFinished: {
+                            var values = text.split(",").map(function(tag) { return tag.trim() }).filter(function(tag) { return tag.length > 0 })
+                            noteController.setTags(noteController.selectedId, values)
+                        }
+                    }
                     Button {
                         text: window.previewMode ? qsTr("Bearbeiten") : qsTr("Vorschau")
                         enabled: noteController.hasSelection
