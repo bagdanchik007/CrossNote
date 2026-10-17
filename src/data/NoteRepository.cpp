@@ -29,7 +29,10 @@ QString safeAbsolutePath(const QString &vault, const QString &relativePath)
     const QString root = QDir(vault).absolutePath();
     const QString candidate = QDir(root).absoluteFilePath(clean);
     const QString prefix = root.endsWith(QDir::separator()) ? root : root + QDir::separator();
-    const Qt::CaseSensitivity sensitivity = Q_OS_WIN ? Qt::CaseInsensitive : Qt::CaseSensitive;
+    Qt::CaseSensitivity sensitivity = Qt::CaseSensitive;
+#ifdef Q_OS_WIN
+    sensitivity = Qt::CaseInsensitive;
+#endif
     if (!candidate.startsWith(prefix, sensitivity))
         return {};
     const QString canonical = QFileInfo(candidate).canonicalFilePath();
@@ -460,7 +463,7 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
         return std::nullopt;
     }
 
-    const QString cleanTitle = title.trimmed().isEmpty() ? QStringLiteral("Neue Notiz") : title.trimmed();
+    const QString cleanTitle = title.simplified().isEmpty() ? QStringLiteral("Neue Notiz") : title.simplified();
     const QString stem = safeFileStem(cleanTitle);
     QString relativePath = stem + QStringLiteral(".md");
     for (int suffix = 2; QFileInfo::exists(QDir(m_impl->vault).filePath(relativePath)); ++suffix)
@@ -509,7 +512,7 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
     if (!current)
         return false;
 
-    const QString cleanTitle = title.trimmed().isEmpty() ? QStringLiteral("Unbenannte Notiz") : title.trimmed();
+    const QString cleanTitle = title.simplified().isEmpty() ? QStringLiteral("Unbenannte Notiz") : title.simplified();
     QString targetPath = current->relativePath;
     if (safeFileStem(cleanTitle) != QFileInfo(targetPath).completeBaseName()) {
         const QString stem = safeFileStem(cleanTitle);

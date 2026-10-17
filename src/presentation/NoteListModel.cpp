@@ -4,6 +4,7 @@
 #include <QVariant>
 
 #include <algorithm>
+#include <utility>
 
 namespace CrossNote {
 
@@ -108,7 +109,7 @@ QString NoteListModel::previewFor(const Note &note) const
         if (end >= 0)
             text.remove(0, end + 4);
     }
-    text.remove(QRegularExpression(QStringLiteral("!??\\[[^\\]]*\\]\\([^)]*\\)")));
+    text.remove(QRegularExpression(QStringLiteral("!?\\[[^\\]]*\\]\\([^)]*\\)")));
     text.remove(QRegularExpression(QStringLiteral("[`*_>#~]")));
     text.replace(QRegularExpression(QStringLiteral("\\s+")), QStringLiteral(" "));
     return text.trimmed().left(140);
