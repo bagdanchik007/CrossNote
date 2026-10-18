@@ -12,13 +12,19 @@
 - Dateisystemüberwachung und Sicherung einer extern geänderten Fassung als Konfliktkopie
 - Markdown-Vorschau, die eingebettete Bilder vor der Anzeige entfernt
 - Einstellbare Editor-Schriftgröße (12–32 px), pro Gerät gespeichert und auch in der Vorschau verwendet
+- Versioniertes SQLite-Schema mit WAL-Modus, Schreibwartezeit und FTS5-Volltextindex
+- Suchindex wird bei Änderungen, Löschungen, Wiederherstellung und externen Dateiereignissen gepflegt
+- Suchindex kann aus den Markdown-Dateien des Vaults wiederhergestellt werden
+- Titel- und Inhalts-Volltextsuche sowie interaktive Tag-Filter
+- Interne `[[Notizname]]`-Links mit Navigation zu vorhandenen Notizen
+- Zuletzt geöffnete Notizen werden anhand ihres Öffnungszeitpunkts sortiert
 - QML-Startfehler werden in `%TEMP%/CrossNote-startup.log` protokolliert
 - Windows-Debug-Build mit MSYS2 UCRT64 konfiguriert und erfolgreich kompiliert
 
 ## Noch offen
 
+- Unit-, Integrations- und Synchronisierungstests
 - Migrationen für künftige SQLite-Schemata
-- Volltextindex FTS5 und Tests
 - Weitere Editoroptionen, Theme-Auswahl und zusätzliche Barrierefreiheit
 - Markdown-Import- und Backup-Werkzeuge
 - Synchronisierung, Website, Android und iOS
