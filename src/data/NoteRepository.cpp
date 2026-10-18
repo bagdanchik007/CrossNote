@@ -713,6 +713,16 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
         if (error) *error = sqlError(insert);
         return std::nullopt;
     }
+    QString indexError;
+    if (!m_impl->replaceSearchDocument(id, cleanTitle, {}, QStringLiteral("[]"), &indexError)) {
+        QSqlQuery remove(m_impl->database);
+        remove.prepare(QStringLiteral("DELETE FROM notes WHERE id = ?"));
+        remove.addBindValue(id);
+        remove.exec();
+        QFile::remove(QDir(m_impl->vault).filePath(relativePath));
+        if (error) *error = indexError;
+        return std::nullopt;
+    }
 
     Note created;
     created.id = id;
