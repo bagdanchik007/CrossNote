@@ -14,6 +14,7 @@ class NoteListModel final : public QAbstractListModel
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(QString query READ query WRITE setQuery NOTIFY queryChanged)
     Q_PROPERTY(QString section READ section WRITE setSection NOTIFY sectionChanged)
+    Q_PROPERTY(QString tagFilter READ tagFilter NOTIFY tagFilterChanged)
 
 public:
     enum Role {
@@ -34,9 +35,11 @@ public:
     [[nodiscard]] int count() const;
     [[nodiscard]] QString query() const;
     [[nodiscard]] QString section() const;
+    [[nodiscard]] QString tagFilter() const;
 
     void setNotes(QVector<Note> notes);
     void setSearchResultIds(const QStringList &ids, bool active);
+    void setTagFilter(const QString &tag);
     void setQuery(const QString &query);
     void setSection(const QString &section);
 
@@ -44,6 +47,7 @@ signals:
     void countChanged();
     void queryChanged();
     void sectionChanged();
+    void tagFilterChanged();
 
 private:
     void rebuildVisibleRows();
@@ -53,6 +57,7 @@ private:
     QVector<int> m_visibleRows;
     QString m_query;
     QString m_section = QStringLiteral("notes");
+    QString m_tagFilter;
     QSet<QString> m_searchResultIds;
     bool m_searchResultsActive = false;
 };

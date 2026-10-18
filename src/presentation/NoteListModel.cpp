@@ -50,6 +50,7 @@ QHash<int, QByteArray> NoteListModel::roleNames() const
 int NoteListModel::count() const { return m_visibleRows.size(); }
 QString NoteListModel::query() const { return m_query; }
 QString NoteListModel::section() const { return m_section; }
+QString NoteListModel::tagFilter() const { return m_tagFilter; }
 
 void NoteListModel::setNotes(QVector<Note> notes)
 {
@@ -70,7 +71,9 @@ void NoteListModel::setNotes(QVector<Note> notes)
         const bool matchesQuery = m_searchResultsActive
             ? m_searchResultIds.contains(note.id)
             : m_query.isEmpty() || searchable.contains(m_query, Qt::CaseInsensitive);
-        if (inSection && matchesQuery)
+        const bool matchesTag = m_tagFilter.isEmpty()
+            || note.tags.contains(m_tagFilter, Qt::CaseInsensitive);
+        if (inSection && matchesQuery && matchesTag)
             m_visibleRows.append(static_cast<int>(i));
     }
     endResetModel();
@@ -83,6 +86,16 @@ void NoteListModel::setSearchResultIds(const QStringList &ids, bool active)
     if (m_searchResultsActive == active && !active)
         return;
     m_searchResultsActive = active;
+    setNotes(m_notes);
+}
+
+void NoteListModel::setTagFilter(const QString &tag)
+{
+    const QString normalized = tag.trimmed();
+    if (m_tagFilter == normalized)
+        return;
+    m_tagFilter = normalized;
+    emit tagFilterChanged();
     setNotes(m_notes);
 }
 
