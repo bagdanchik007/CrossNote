@@ -146,6 +146,13 @@ public:
             if (error) *error = sqlError(pragma);
             return false;
         }
+        if (!pragma.exec(QStringLiteral("PRAGMA journal_mode = WAL")) || !pragma.next()
+            || pragma.value(0).toString().compare(QStringLiteral("wal"), Qt::CaseInsensitive) != 0) {
+            if (error) *error = pragma.lastError().text().isEmpty()
+                ? QStringLiteral("Der lokale Datenbankmodus WAL konnte nicht aktiviert werden.")
+                : sqlError(pragma);
+            return false;
+        }
         if (!createSchema(error))
             return false;
         return true;
