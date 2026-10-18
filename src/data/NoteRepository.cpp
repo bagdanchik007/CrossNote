@@ -734,10 +734,26 @@ QString safeFileStem(const QString &title)
     QString result = title.simplified();
     result.replace(QRegularExpression(QStringLiteral("[\\\\/:*?\"<>|]")), QStringLiteral("-"));
     result.replace(QRegularExpression(QStringLiteral("\\s+")), QStringLiteral("-"));
-    result.remove(QRegularExpression(QStringLiteral("^[. -]+|[. -]+$")));
+    result.remove(QRegularExpression(QStringLiteral("^[. -]+|[. ]+$")));
     if (result.isEmpty())
         result = QStringLiteral("Neue-Notiz");
-    return result.left(80);
+    result = result.left(80);
+
+    static const QRegularExpression reservedName(
+        QStringLiteral("^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$"),
+        QRegularExpression::CaseInsensitiveOption);
+    if (reservedName.match(result).hasMatch())
+        result.prepend(u'_');
+    return result;
+}
+
+QString uniqueNotePath(const QString &vault, const QString &stem)
+{
+    const QDir root(vault);
+    QString candidate = stem + QStringLiteral(".md");
+    for (int suffix = 2; QFileInfo::exists(root.filePath(candidate)); ++suffix)
+        candidate = QStringLiteral("%1-%2.md").arg(stem).arg(suffix);
+    return candidate;
 }
 
 QString markdownForNote(const QString &id, const QString &title, const QString &content,
@@ -782,10 +798,7 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
     }
 
     const QString cleanTitle = title.simplified().isEmpty() ? QStringLiteral("Neue Notiz") : title.simplified();
-    const QString stem = safeFileStem(cleanTitle);
-    QString relativePath = stem + QStringLiteral(".md");
-    for (int suffix = 2; QFileInfo::exists(QDir(m_impl->vault).filePath(relativePath)); ++suffix)
-        relativePath = QStringLiteral("%1-%2.md").arg(stem).arg(suffix);
+    const QString relativePath = uniqueNotePath(m_impl->vault, safeFileStem(cleanTitle));
 
     const QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     const QDateTime now = QDateTime::currentDateTimeUtc();
