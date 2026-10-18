@@ -162,6 +162,23 @@ public:
                 return false;
             }
         }
+
+        QSqlQuery currentVersion(database);
+        if (!currentVersion.exec(QStringLiteral("SELECT MAX(version) FROM schema_version"))) {
+            if (error) *error = sqlError(currentVersion);
+            return false;
+        }
+        if (!currentVersion.next()) {
+            if (error) *error = QStringLiteral("Das Datenbankschema konnte nicht gelesen werden.");
+            return false;
+        }
+        if (currentVersion.value(0).isNull()) {
+            QSqlQuery initializeVersion(database);
+            if (!initializeVersion.exec(QStringLiteral("INSERT INTO schema_version (version) VALUES (1)"))) {
+                if (error) *error = sqlError(initializeVersion);
+                return false;
+            }
+        }
         return true;
     }
 
