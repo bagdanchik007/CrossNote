@@ -3,6 +3,7 @@
 #include "domain/Note.h"
 
 #include <QAbstractListModel>
+#include <QSet>
 #include <QVector>
 
 namespace CrossNote {
@@ -35,6 +36,7 @@ public:
     [[nodiscard]] QString section() const;
 
     void setNotes(QVector<Note> notes);
+    void setSearchResultIds(const QStringList &ids, bool active);
     void setQuery(const QString &query);
     void setSection(const QString &section);
 
@@ -51,6 +53,8 @@ private:
     QVector<int> m_visibleRows;
     QString m_query;
     QString m_section = QStringLiteral("notes");
+    QSet<QString> m_searchResultIds;
+    bool m_searchResultsActive = false;
 };
 
 } // namespace CrossNote

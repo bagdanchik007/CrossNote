@@ -67,13 +67,23 @@ void NoteListModel::setNotes(QVector<Note> notes)
             : m_section == QStringLiteral("recent") ? note.lastOpenedAt.isValid() : true;
         const QString searchable = note.title + u' ' + note.content + u' '
             + note.tags.join(u' ');
-        const bool matchesQuery = m_query.isEmpty()
-            || searchable.contains(m_query, Qt::CaseInsensitive);
+        const bool matchesQuery = m_searchResultsActive
+            ? m_searchResultIds.contains(note.id)
+            : m_query.isEmpty() || searchable.contains(m_query, Qt::CaseInsensitive);
         if (inSection && matchesQuery)
             m_visibleRows.append(static_cast<int>(i));
     }
     endResetModel();
     emit countChanged();
+}
+
+void NoteListModel::setSearchResultIds(const QStringList &ids, bool active)
+{
+    m_searchResultIds = QSet<QString>(ids.begin(), ids.end());
+    if (m_searchResultsActive == active && !active)
+        return;
+    m_searchResultsActive = active;
+    setNotes(m_notes);
 }
 
 void NoteListModel::setQuery(const QString &query)
