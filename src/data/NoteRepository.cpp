@@ -992,12 +992,20 @@ bool NoteRepository::restoreFromTrash(const QString &id, QString *error)
     insert.addBindValue(lastOpenedAt);
     insert.addBindValue(favorite);
     insert.addBindValue(tags);
+    QFile restoredFile(absoluteRestored);
+    QString restoredContent;
+    if (restoredFile.open(QIODevice::ReadOnly))
+        restoredContent = QString::fromUtf8(restoredFile.readAll());
+    QString indexError;
+    const bool indexUpdated = m_impl->replaceSearchDocument(id, title, restoredContent,
+                                                             tags.toString(), &indexError);
     QSqlQuery remove(m_impl->database);
     remove.prepare(QStringLiteral("DELETE FROM trashed_notes WHERE id = ?"));
     remove.addBindValue(id);
-    if (!insert.exec() || !remove.exec() || !m_impl->database.commit()) {
+    if (!insert.exec() || !remove.exec() || !indexUpdated || !m_impl->database.commit()) {
         const QString message = !insert.lastError().text().isEmpty() ? sqlError(insert)
-            : !remove.lastError().text().isEmpty() ? sqlError(remove) : m_impl->database.lastError().text();
+            : !remove.lastError().text().isEmpty() ? sqlError(remove)
+            : !indexError.isEmpty() ? indexError : m_impl->database.lastError().text();
         m_impl->database.rollback();
         QFile::rename(absoluteRestored, absoluteTrash);
         if (error) *error = message;
