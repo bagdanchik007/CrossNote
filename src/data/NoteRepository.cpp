@@ -19,7 +19,7 @@
 namespace CrossNote {
 namespace {
 
-constexpr int CurrentSchemaVersion = 1;
+constexpr int CurrentSchemaVersion = 2;
 
 QString safeAbsolutePath(const QString &vault, const QString &relativePath)
 {
@@ -190,10 +190,66 @@ public:
             if (error) *error = QStringLiteral("Die lokale Datenbank stammt aus einer neueren CrossNote-Version.");
             return false;
         }
+        int version = currentVersion.value(0).toInt();
         if (currentVersion.value(0).isNull()) {
             QSqlQuery initializeVersion(database);
             if (!initializeVersion.exec(QStringLiteral("INSERT INTO schema_version (version) VALUES (1)"))) {
                 if (error) *error = sqlError(initializeVersion);
+                return false;
+            }
+            version = 1;
+        }
+
+        if (version < 2) {
+            if (!database.transaction()) {
+                if (error) *error = database.lastError().text();
+                return false;
+            }
+            QSqlQuery createSearchIndex(database);
+            if (!createSearchIndex.exec(QStringLiteral(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS note_search USING fts5("
+                    "note_id UNINDEXED, title, content, tags, tokenize='unicode61 remove_diacritics 2')"))) {
+                database.rollback();
+                if (error) *error = sqlError(createSearchIndex);
+                return false;
+            }
+
+            QSqlQuery sourceNotes(database);
+            if (!sourceNotes.exec(QStringLiteral("SELECT id, title, relative_path, tags FROM notes"))) {
+                database.rollback();
+                if (error) *error = sqlError(sourceNotes);
+                return false;
+            }
+            while (sourceNotes.next()) {
+                const QString id = sourceNotes.value(0).toString();
+                const QString title = sourceNotes.value(1).toString();
+                const QString path = safeAbsolutePath(vault, sourceNotes.value(2).toString());
+                QString content;
+                QFile noteFile(path);
+                if (!path.isEmpty() && noteFile.open(QIODevice::ReadOnly))
+                    content = QString::fromUtf8(noteFile.readAll());
+
+                QSqlQuery indexDocument(database);
+                indexDocument.prepare(QStringLiteral(
+                    "INSERT INTO note_search (note_id, title, content, tags) VALUES (?, ?, ?, ?)"));
+                indexDocument.addBindValue(id);
+                indexDocument.addBindValue(title);
+                indexDocument.addBindValue(content);
+                indexDocument.addBindValue(sourceNotes.value(3).toString());
+                if (!indexDocument.exec()) {
+                    database.rollback();
+                    if (error) *error = sqlError(indexDocument);
+                    return false;
+                }
+            }
+
+            QSqlQuery updateVersion(database);
+            if (!updateVersion.exec(QStringLiteral("INSERT INTO schema_version (version) VALUES (2)"))
+                || !database.commit()) {
+                const QString message = updateVersion.lastError().text().isEmpty()
+                    ? database.lastError().text() : sqlError(updateVersion);
+                database.rollback();
+                if (error) *error = message;
                 return false;
             }
         }
