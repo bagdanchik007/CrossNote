@@ -835,9 +835,13 @@ bool NoteRepository::setFavorite(const QString &id, bool favorite, QString *erro
 
 bool NoteRepository::setTags(const QString &id, const QStringList &tags, QString *error)
 {
+    const auto current = note(id, true, error);
+    if (!current)
+        return false;
+    const QString serializedTags = normalizedTags(tags);
     QSqlQuery query(m_impl->database);
     query.prepare(QStringLiteral("UPDATE notes SET tags = ? WHERE id = ?"));
-    query.addBindValue(normalizedTags(tags));
+    query.addBindValue(serializedTags);
     query.addBindValue(id);
     if (!query.exec()) {
         if (error) *error = sqlError(query);
@@ -845,6 +849,11 @@ bool NoteRepository::setTags(const QString &id, const QStringList &tags, QString
     }
     if (query.numRowsAffected() != 1) {
         if (error) *error = QStringLiteral("Die Notiz wurde nicht gefunden.");
+        return false;
+    }
+    QString indexError;
+    if (!m_impl->replaceSearchDocument(id, current->title, current->content, serializedTags, &indexError)) {
+        if (error) *error = indexError;
         return false;
     }
     emit notesChanged();
