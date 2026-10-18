@@ -747,11 +747,18 @@ QString safeFileStem(const QString &title)
     return result;
 }
 
-QString uniqueNotePath(const QString &vault, const QString &stem)
+QString uniqueNotePath(const QString &vault, const QString &stem, const QSet<QString> &indexedPaths)
 {
     const QDir root(vault);
     QString candidate = stem + QStringLiteral(".md");
-    for (int suffix = 2; QFileInfo::exists(root.filePath(candidate)); ++suffix)
+    QSet<QString> occupiedNames;
+    const QStringList files = root.entryList(QDir::Files | QDir::NoDotAndDotDot);
+    for (const QString &file : files)
+        occupiedNames.insert(file.toCaseFolded());
+    for (const QString &path : indexedPaths)
+        occupiedNames.insert(path.toCaseFolded());
+
+    for (int suffix = 2; occupiedNames.contains(candidate.toCaseFolded()); ++suffix)
         candidate = QStringLiteral("%1-%2.md").arg(stem).arg(suffix);
     return candidate;
 }
@@ -802,7 +809,18 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
         if (error) *error = QStringLiteral("Der Titel darf höchstens 160 Zeichen lang sein.");
         return std::nullopt;
     }
-    const QString relativePath = uniqueNotePath(m_impl->vault, safeFileStem(cleanTitle));
+    QSqlQuery existingPaths(m_impl->database);
+    if (!existingPaths.exec(QStringLiteral(
+            "SELECT relative_path FROM notes UNION SELECT relative_path FROM trashed_notes"))) {
+        if (error) *error = sqlError(existingPaths);
+        return std::nullopt;
+    }
+    QSet<QString> indexedPaths;
+    while (existingPaths.next())
+        indexedPaths.insert(existingPaths.value(0).toString());
+    existingPaths.finish();
+
+    const QString relativePath = uniqueNotePath(m_impl->vault, safeFileStem(cleanTitle), indexedPaths);
 
     const QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     const QDateTime now = QDateTime::currentDateTimeUtc();
