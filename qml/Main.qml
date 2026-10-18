@@ -29,14 +29,18 @@ ApplicationWindow {
     }
     function saveEditor() {
         if (noteController.hasSelection)
-            noteController.saveCurrent(titleField.text, bodyEditor.text)
+            return noteController.saveCurrent(titleField.text, bodyEditor.text)
+        return true
     }
 
     FolderDialog {
         id: vaultDialog
         title: qsTr("Notizordner auswählen")
         onAccepted: {
-            saveEditor()
+            if (!saveEditor()) {
+                vaultDialog.open()
+                return
+            }
             noteController.setVaultPath(selectedFolder.toLocalFile())
         }
     }
@@ -52,7 +56,8 @@ ApplicationWindow {
             wrapMode: Text.WordWrap
         }
         onAccepted: {
-            saveEditor()
+            if (!saveEditor())
+                return
             noteController.deleteCurrent()
         }
     }
@@ -172,7 +177,7 @@ ApplicationWindow {
                         checkable: true
                         checked: window.currentSection === "notes"
                         onClicked: {
-                            saveEditor()
+                            if (!saveEditor()) return
                             window.currentSection = "notes"
                             noteController.setSection("notes")
                         }
@@ -183,7 +188,7 @@ ApplicationWindow {
                         checkable: true
                         checked: window.currentSection === "favorites"
                         onClicked: {
-                            saveEditor()
+                            if (!saveEditor()) return
                             window.currentSection = "favorites"
                             noteController.setSection("favorites")
                         }
@@ -194,7 +199,7 @@ ApplicationWindow {
                         checkable: true
                         checked: window.currentSection === "recent"
                         onClicked: {
-                            saveEditor()
+                            if (!saveEditor()) return
                             window.currentSection = "recent"
                             noteController.setSection("recent")
                         }
@@ -205,7 +210,7 @@ ApplicationWindow {
                         checkable: true
                         checked: window.currentSection === "trash"
                         onClicked: {
-                            saveEditor()
+                            if (!saveEditor()) return
                             window.currentSection = "trash"
                             noteController.setSection("trash")
                         }
@@ -269,7 +274,7 @@ ApplicationWindow {
                         text: qsTr("+  Neue Notiz")
                         highlighted: true
                         onClicked: {
-                            saveEditor()
+                            if (!saveEditor()) return
                             noteController.createNote(qsTr("Neue Notiz"))
                         }
                     }
@@ -294,8 +299,8 @@ ApplicationWindow {
                             highlighted: noteController.selectedId === noteId
                             onClicked: {
                                 if (window.currentSection !== "trash" && noteController.selectedId !== noteId) {
-                                    saveEditor()
-                                    noteController.openNote(noteId)
+                                    if (saveEditor())
+                                        noteController.openNote(noteId)
                                 }
                             }
 
@@ -414,7 +419,7 @@ ApplicationWindow {
                         text: window.previewMode ? qsTr("Bearbeiten") : qsTr("Vorschau")
                         enabled: noteController.hasSelection
                         onClicked: {
-                            saveEditor()
+                            if (!saveEditor()) return
                             window.previewMode = !window.previewMode
                         }
                     }

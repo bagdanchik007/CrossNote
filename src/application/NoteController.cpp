@@ -119,14 +119,14 @@ void NoteController::openNoteByTitle(const QString &title)
     openNote(*id);
 }
 
-void NoteController::saveCurrent(const QString &title, const QString &content)
+bool NoteController::saveCurrent(const QString &title, const QString &content)
 {
     if (m_selectedId.isEmpty())
-        return;
+        return true;
     QString error;
     if (!m_repository.saveNote(m_selectedId, title, content, m_selectedHash, &error)) {
         setError(error);
-        return;
+        return false;
     }
     m_selectedTitle = title.trimmed().isEmpty() ? tr("Unbenannte Notiz") : title.trimmed();
     m_selectedContent = content;
@@ -139,6 +139,7 @@ void NoteController::saveCurrent(const QString &title, const QString &content)
     } else {
         setStatus(tr("Gespeichert"));
     }
+    return true;
 }
 
 void NoteController::deleteCurrent()
