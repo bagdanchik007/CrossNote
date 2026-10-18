@@ -522,6 +522,7 @@ bool NoteRepository::refresh(QString *error)
         const Note parsed = parseMarkdownFile(text, existingId, info.completeBaseName(), relativePath);
         const QString id = parsed.id.isEmpty()
             ? QUuid::createUuid().toString(QUuid::WithoutBraces) : parsed.id;
+        const QString title = parsed.title.trimmed().isEmpty() ? info.completeBaseName() : parsed.title;
         if (createdAt <= 0)
             createdAt = info.lastModified().toUTC().toMSecsSinceEpoch();
         if (!parsed.tags.isEmpty())
@@ -534,7 +535,7 @@ bool NoteRepository::refresh(QString *error)
             "ON CONFLICT(id) DO UPDATE SET title=excluded.title, relative_path=excluded.relative_path, "
             "updated_at=excluded.updated_at, tags=excluded.tags"));
         upsert.addBindValue(id);
-        upsert.addBindValue(parsed.title.trimmed().isEmpty() ? info.completeBaseName() : parsed.title);
+        upsert.addBindValue(title);
         upsert.addBindValue(relativePath);
         upsert.addBindValue(createdAt);
         upsert.addBindValue(info.lastModified().toUTC().toMSecsSinceEpoch());
@@ -543,6 +544,12 @@ bool NoteRepository::refresh(QString *error)
         if (!upsert.exec()) {
             transaction.exec(QStringLiteral("ROLLBACK"));
             if (error) *error = sqlError(upsert);
+            return false;
+        }
+        QString indexError;
+        if (!m_impl->replaceSearchDocument(id, title, parsed.content, normalizedTags(tags), &indexError)) {
+            transaction.exec(QStringLiteral("ROLLBACK"));
+            if (error) *error = indexError;
             return false;
         }
     }
