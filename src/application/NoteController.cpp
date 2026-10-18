@@ -101,6 +101,20 @@ void NoteController::openNote(const QString &id)
     setStatus(tr("Notiz geöffnet"));
 }
 
+void NoteController::openNoteByTitle(const QString &title)
+{
+    QString error;
+    const auto id = m_repository.noteIdForTitle(title, &error);
+    if (!id) {
+        if (!error.isEmpty())
+            setError(error);
+        else
+            setStatus(tr("Verlinkte Notiz nicht gefunden: %1").arg(title));
+        return;
+    }
+    openNote(*id);
+}
+
 void NoteController::saveCurrent(const QString &title, const QString &content)
 {
     if (m_selectedId.isEmpty())
