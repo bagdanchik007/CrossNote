@@ -81,6 +81,7 @@ ApplicationWindow {
         anchors.centerIn: parent
         standardButtons: Dialog.NoButton
         width: Math.min(window.width - 48, 460)
+        closePolicy: Popup.CloseOnEscape
 
         onOpened: {
             createNoteError = ""
@@ -134,6 +135,12 @@ ApplicationWindow {
         interval: 650
         repeat: false
         onTriggered: saveEditor()
+    }
+
+    Shortcut {
+        sequence: StandardKey.New
+        enabled: !createNoteDialog.visible
+        onActivated: createNoteDialog.open()
     }
 
     Connections {
@@ -338,8 +345,11 @@ ApplicationWindow {
 
                     Button {
                         Layout.fillWidth: true
-                        text: qsTr("+  Neue Notiz")
+                        text: qsTr("+  Neue Notiz") + "  (Ctrl+N)"
                         highlighted: true
+                        Accessible.name: qsTr("Neue Notiz erstellen, Tastenkürzel Strg+N")
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Erstellt eine neue Markdown-Notiz")
                         onClicked: createNoteDialog.open()
                     }
 
