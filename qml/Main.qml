@@ -8,6 +8,7 @@ ApplicationWindow {
 
     property string currentSection: "notes"
     property bool previewMode: false
+    property string createNoteError: ""
 
     width: 1280
     height: 820
@@ -31,6 +32,17 @@ ApplicationWindow {
         if (noteController.hasSelection)
             return noteController.saveCurrent(titleField.text, bodyEditor.text)
         return true
+    }
+    function confirmCreateNote() {
+        createNoteError = ""
+        if (!saveEditor())
+            return
+        if (noteController.createNote(createTitleField.text)) {
+            searchField.clear()
+            createNoteDialog.close()
+        } else {
+            createNoteError = noteController.errorText
+        }
     }
 
     FolderDialog {
@@ -59,6 +71,61 @@ ApplicationWindow {
             if (!saveEditor())
                 return
             noteController.deleteCurrent()
+        }
+    }
+
+    Dialog {
+        id: createNoteDialog
+        title: qsTr("Neue Notiz erstellen")
+        modal: true
+        anchors.centerIn: parent
+        standardButtons: Dialog.NoButton
+        width: Math.min(window.width - 48, 460)
+
+        onOpened: {
+            createNoteError = ""
+            createTitleField.text = qsTr("Neue Notiz")
+            Qt.callLater(function() {
+                createTitleField.forceActiveFocus()
+                createTitleField.selectAll()
+            })
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 10
+            Label {
+                text: qsTr("Gib einen Titel für deine Markdown-Notiz ein.")
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            TextField {
+                id: createTitleField
+                Layout.fillWidth: true
+                maximumLength: 160
+                placeholderText: qsTr("Notiztitel")
+                Accessible.name: qsTr("Titel der neuen Notiz")
+                onAccepted: window.confirmCreateNote()
+            }
+            Label {
+                Layout.fillWidth: true
+                visible: createNoteError.length > 0
+                text: createNoteError
+                color: "#b42318"
+                wrapMode: Text.WordWrap
+            }
+            RowLayout {
+                Layout.alignment: Qt.AlignRight
+                Button {
+                    text: qsTr("Abbrechen")
+                    onClicked: createNoteDialog.close()
+                }
+                Button {
+                    text: qsTr("Erstellen")
+                    highlighted: true
+                    onClicked: window.confirmCreateNote()
+                }
+            }
         }
     }
 
@@ -273,10 +340,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         text: qsTr("+  Neue Notiz")
                         highlighted: true
-                        onClicked: {
-                            if (!saveEditor()) return
-                            noteController.createNote(qsTr("Neue Notiz"))
-                        }
+                        onClicked: createNoteDialog.open()
                     }
 
                     ListView {
