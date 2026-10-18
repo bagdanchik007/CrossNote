@@ -67,16 +67,20 @@ void NoteController::setVaultPath(const QString &path)
     setStatus(tr("Notizordner gewechselt"));
 }
 
-void NoteController::createNote()
+bool NoteController::createNote(const QString &title)
 {
     QString error;
-    const auto created = m_repository.createNote(tr("Neue Notiz"), &error);
+    const auto created = m_repository.createNote(title, &error);
     if (!created) {
         setError(error);
-        return;
+        return false;
     }
+    setSection(QStringLiteral("notes"));
+    setTagFilter(QString());
+    setSearchQuery(QString());
     openNote(created->id);
     setStatus(tr("Notiz erstellt"));
+    return true;
 }
 
 void NoteController::openNote(const QString &id)

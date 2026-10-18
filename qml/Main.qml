@@ -270,7 +270,7 @@ ApplicationWindow {
                         highlighted: true
                         onClicked: {
                             saveEditor()
-                            noteController.createNote()
+                            noteController.createNote(qsTr("Neue Notiz"))
                         }
                     }
 
