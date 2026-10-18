@@ -31,6 +31,8 @@ public:
     [[nodiscard]] bool rebuildSearchIndex(QString *error = nullptr);
     [[nodiscard]] std::optional<Note> note(const QString &id, bool includeContent = true,
                                            QString *error = nullptr) const;
+    [[nodiscard]] std::optional<QString> noteIdForTitle(const QString &title,
+                                                         QString *error = nullptr) const;
 
     [[nodiscard]] std::optional<Note> createNote(const QString &title, QString *error = nullptr);
     [[nodiscard]] bool saveNote(const QString &id, const QString &title,

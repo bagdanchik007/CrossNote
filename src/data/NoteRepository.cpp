@@ -553,6 +553,22 @@ std::optional<Note> NoteRepository::note(const QString &id, bool includeContent,
     }
     return result;
 }
+
+std::optional<QString> NoteRepository::noteIdForTitle(const QString &title, QString *error) const
+{
+    QSqlQuery query(m_impl->database);
+    query.prepare(QStringLiteral("SELECT id FROM notes WHERE title = ? COLLATE NOCASE "
+                                 "ORDER BY updated_at DESC, id LIMIT 1"));
+    query.addBindValue(title.trimmed());
+    if (!query.exec()) {
+        if (error) *error = sqlError(query);
+        return std::nullopt;
+    }
+    if (!query.next())
+        return std::nullopt;
+    return query.value(0).toString();
+}
+
 bool NoteRepository::refresh(QString *error)
 {
     if (!m_impl->database.isOpen()) {
