@@ -229,16 +229,10 @@ public:
                 if (!path.isEmpty() && noteFile.open(QIODevice::ReadOnly))
                     content = QString::fromUtf8(noteFile.readAll());
 
-                QSqlQuery indexDocument(database);
-                indexDocument.prepare(QStringLiteral(
-                    "INSERT INTO note_search (note_id, title, content, tags) VALUES (?, ?, ?, ?)"));
-                indexDocument.addBindValue(id);
-                indexDocument.addBindValue(title);
-                indexDocument.addBindValue(content);
-                indexDocument.addBindValue(sourceNotes.value(3).toString());
-                if (!indexDocument.exec()) {
+                QString indexError;
+                if (!replaceSearchDocument(id, title, content, sourceNotes.value(3).toString(), &indexError)) {
                     database.rollback();
-                    if (error) *error = sqlError(indexDocument);
+                    if (error) *error = indexError;
                     return false;
                 }
             }
@@ -252,6 +246,43 @@ public:
                 if (error) *error = message;
                 return false;
             }
+        }
+        return true;
+    }
+
+    bool replaceSearchDocument(const QString &id, const QString &title, const QString &content,
+                               const QString &tags, QString *error)
+    {
+        QSqlQuery remove(database);
+        remove.prepare(QStringLiteral("DELETE FROM note_search WHERE note_id = ?"));
+        remove.addBindValue(id);
+        if (!remove.exec()) {
+            if (error) *error = sqlError(remove);
+            return false;
+        }
+
+        QSqlQuery insert(database);
+        insert.prepare(QStringLiteral(
+            "INSERT INTO note_search (note_id, title, content, tags) VALUES (?, ?, ?, ?)"));
+        insert.addBindValue(id);
+        insert.addBindValue(title);
+        insert.addBindValue(content);
+        insert.addBindValue(tags);
+        if (!insert.exec()) {
+            if (error) *error = sqlError(insert);
+            return false;
+        }
+        return true;
+    }
+
+    bool removeSearchDocument(const QString &id, QString *error)
+    {
+        QSqlQuery remove(database);
+        remove.prepare(QStringLiteral("DELETE FROM note_search WHERE note_id = ?"));
+        remove.addBindValue(id);
+        if (!remove.exec()) {
+            if (error) *error = sqlError(remove);
+            return false;
         }
         return true;
     }
