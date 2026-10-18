@@ -299,13 +299,19 @@ ApplicationWindow {
                                         color: "#737c8a"
                                         font.pixelSize: 12
                                     }
-                                    Label {
+                                    Flow {
                                         Layout.fillWidth: true
                                         visible: tags.length > 0
-                                        text: tags.join("  ·  ")
-                                        elide: Text.ElideRight
-                                        color: "#5369e8"
-                                        font.pixelSize: 10
+                                        spacing: 2
+                                        Repeater {
+                                            model: tags
+                                            delegate: ToolButton {
+                                                required property string modelData
+                                                text: modelData
+                                                Accessible.name: qsTr("Nach Tag %1 filtern").arg(modelData)
+                                                onClicked: noteController.setTagFilter(modelData)
+                                            }
+                                        }
                                     }
                                 }
                                 ToolButton {
