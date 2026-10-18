@@ -126,6 +126,13 @@ ApplicationWindow {
                     text: qsTr("Ordner wechseln")
                     onClicked: vaultDialog.open()
                 }
+                ToolButton {
+                    text: "↻"
+                    Accessible.name: qsTr("Volltextindex neu aufbauen")
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Suchindex aus den Markdown-Dateien wiederherstellen")
+                    onClicked: noteController.rebuildSearchIndex()
+                }
             }
         }
 
