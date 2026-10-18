@@ -47,6 +47,7 @@ public:
     Q_INVOKABLE void setTags(const QString &id, const QStringList &tags);
     Q_INVOKABLE void setSearchQuery(const QString &query);
     Q_INVOKABLE void setTagFilter(const QString &tag);
+    Q_INVOKABLE void rebuildSearchIndex();
     Q_INVOKABLE void setSection(const QString &section);
     Q_INVOKABLE void restoreFromTrash(const QString &id);
     Q_INVOKABLE void setEditorFontSize(int size);

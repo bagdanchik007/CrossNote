@@ -194,6 +194,17 @@ void NoteController::setTagFilter(const QString &tag)
     m_noteModel.setTagFilter(tag);
 }
 
+void NoteController::rebuildSearchIndex()
+{
+    QString error;
+    if (!m_repository.rebuildSearchIndex(&error)) {
+        setError(error);
+        return;
+    }
+    clearError();
+    setStatus(tr("Volltextindex wurde aus den Markdown-Dateien neu aufgebaut"));
+}
+
 void NoteController::setSection(const QString &section)
 {
     m_noteModel.setSection(section);
