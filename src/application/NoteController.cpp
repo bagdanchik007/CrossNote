@@ -123,6 +123,8 @@ bool NoteController::saveCurrent(const QString &title, const QString &content)
 {
     if (m_selectedId.isEmpty())
         return true;
+    if (title.simplified() == m_selectedTitle.simplified() && content == m_selectedContent)
+        return true;
     QString error;
     if (!m_repository.saveNote(m_selectedId, title, content, m_selectedHash, &error)) {
         setError(error);
