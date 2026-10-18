@@ -813,6 +813,12 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
         return std::nullopt;
     }
 
+    if (!m_impl->database.transaction()) {
+        QFile::remove(QDir(m_impl->vault).filePath(relativePath));
+        if (error) *error = m_impl->database.lastError().text();
+        return std::nullopt;
+    }
+
     QSqlQuery insert(m_impl->database);
     insert.prepare(QStringLiteral("INSERT INTO notes (id, title, relative_path, created_at, updated_at, favorite, tags) "
                                   "VALUES (?, ?, ?, ?, ?, 0, '[]')"));
@@ -822,18 +828,24 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
     insert.addBindValue(now.toMSecsSinceEpoch());
     insert.addBindValue(now.toMSecsSinceEpoch());
     if (!insert.exec()) {
+        const QString message = sqlError(insert);
+        m_impl->database.rollback();
         QFile::remove(QDir(m_impl->vault).filePath(relativePath));
-        if (error) *error = sqlError(insert);
+        if (error) *error = message;
         return std::nullopt;
     }
     QString indexError;
     if (!m_impl->replaceSearchDocument(id, cleanTitle, {}, QStringLiteral("[]"), &indexError)) {
-        QSqlQuery remove(m_impl->database);
-        remove.prepare(QStringLiteral("DELETE FROM notes WHERE id = ?"));
-        remove.addBindValue(id);
-        remove.exec();
+        m_impl->database.rollback();
         QFile::remove(QDir(m_impl->vault).filePath(relativePath));
         if (error) *error = indexError;
+        return std::nullopt;
+    }
+    if (!m_impl->database.commit()) {
+        const QString message = m_impl->database.lastError().text();
+        m_impl->database.rollback();
+        QFile::remove(QDir(m_impl->vault).filePath(relativePath));
+        if (error) *error = message;
         return std::nullopt;
     }
 
