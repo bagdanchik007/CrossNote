@@ -11,12 +11,16 @@
 - Papierkorb mit Wiederherstellen
 - Dateisystemüberwachung und Sicherung einer extern geänderten Fassung als Konfliktkopie
 - Markdown-Vorschau, die eingebettete Bilder vor der Anzeige entfernt
+- Einstellbare Editor-Schriftgröße (12–32 px), pro Gerät gespeichert und auch in der Vorschau verwendet
+- QML-Startfehler werden in `%TEMP%/CrossNote-startup.log` protokolliert
+- Windows-Debug-Build mit MSYS2 UCRT64 konfiguriert und erfolgreich kompiliert
 
 ## Noch offen
 
-- Build und Laufzeitprüfung auf einem Rechner mit installiertem Qt 6.5+, CMake und Ninja
 - Migrationen für künftige SQLite-Schemata
 - Volltextindex FTS5 und Tests
+- Weitere Editoroptionen, Theme-Auswahl und zusätzliche Barrierefreiheit
+- Markdown-Import- und Backup-Werkzeuge
 - Synchronisierung, Website, Android und iOS
 - Verpackung und Installer für Windows und Linux
 

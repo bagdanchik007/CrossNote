@@ -374,6 +374,16 @@ ApplicationWindow {
                             noteController.setTags(noteController.selectedId, values)
                         }
                     }
+                    ToolButton {
+                        text: "A−"
+                        Accessible.name: qsTr("Editor-Schrift verkleinern")
+                        onClicked: noteController.setEditorFontSize(noteController.editorFontSize - 1)
+                    }
+                    ToolButton {
+                        text: "A+"
+                        Accessible.name: qsTr("Editor-Schrift vergrößern")
+                        onClicked: noteController.setEditorFontSize(noteController.editorFontSize + 1)
+                    }
                     Button {
                         text: window.previewMode ? qsTr("Bearbeiten") : qsTr("Vorschau")
                         enabled: noteController.hasSelection
@@ -407,7 +417,7 @@ ApplicationWindow {
                         selectByMouse: true
                         persistentSelection: true
                         font.family: "monospace"
-                        font.pixelSize: 15
+                        font.pixelSize: noteController.editorFontSize
                         background: null
                         Accessible.name: qsTr("Markdown-Editor")
                         onTextChanged: {
@@ -429,7 +439,7 @@ ApplicationWindow {
                             textFormat: Text.MarkdownText
                             text: window.safeMarkdown(titleField.text, bodyEditor.text)
                             color: "#252a33"
-                            font.pixelSize: 16
+                            font.pixelSize: noteController.editorFontSize
                             wrapMode: Text.WordWrap
                         }
                     }

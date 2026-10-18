@@ -21,6 +21,7 @@ class NoteController final : public QObject
     Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY currentNoteChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
     Q_PROPERTY(QString errorText READ errorText NOTIFY errorTextChanged)
+    Q_PROPERTY(int editorFontSize READ editorFontSize NOTIFY editorFontSizeChanged)
 
 public:
     explicit NoteController(QObject *parent = nullptr);
@@ -34,6 +35,7 @@ public:
     [[nodiscard]] bool hasSelection() const;
     [[nodiscard]] QString statusText() const;
     [[nodiscard]] QString errorText() const;
+    [[nodiscard]] int editorFontSize() const;
 
     Q_INVOKABLE void initialize();
     Q_INVOKABLE void setVaultPath(const QString &path);
@@ -46,6 +48,7 @@ public:
     Q_INVOKABLE void setSearchQuery(const QString &query);
     Q_INVOKABLE void setSection(const QString &section);
     Q_INVOKABLE void restoreFromTrash(const QString &id);
+    Q_INVOKABLE void setEditorFontSize(int size);
 
 signals:
     void vaultPathChanged();
@@ -53,6 +56,7 @@ signals:
     void selectedTagsChanged();
     void statusTextChanged();
     void errorTextChanged();
+    void editorFontSizeChanged();
 
 private:
     void reloadNotes();
@@ -70,6 +74,7 @@ private:
     QStringList m_selectedTags;
     QString m_statusText;
     QString m_errorText;
+    int m_editorFontSize = 16;
 };
 
 } // namespace CrossNote

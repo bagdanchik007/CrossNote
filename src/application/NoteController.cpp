@@ -9,6 +9,7 @@ namespace CrossNote {
 NoteController::NoteController(QObject *parent)
     : QObject(parent), m_repository(), m_noteModel()
 {
+    m_editorFontSize = qBound(12, QSettings().value(QStringLiteral("editor/fontSize"), 16).toInt(), 32);
     connect(&m_repository, &NoteRepository::notesChanged,
             this, &NoteController::reloadNotes);
     connect(&m_repository, &NoteRepository::errorOccurred,
@@ -26,6 +27,7 @@ QStringList NoteController::selectedTags() const { return m_selectedTags; }
 bool NoteController::hasSelection() const { return !m_selectedId.isEmpty(); }
 QString NoteController::statusText() const { return m_statusText; }
 QString NoteController::errorText() const { return m_errorText; }
+int NoteController::editorFontSize() const { return m_editorFontSize; }
 
 void NoteController::initialize()
 {
@@ -192,6 +194,17 @@ void NoteController::restoreFromTrash(const QString &id)
     }
     clearError();
     setStatus(tr("Notiz wiederhergestellt"));
+}
+
+void NoteController::setEditorFontSize(int size)
+{
+    const int boundedSize = qBound(12, size, 32);
+    if (m_editorFontSize == boundedSize)
+        return;
+
+    m_editorFontSize = boundedSize;
+    QSettings().setValue(QStringLiteral("editor/fontSize"), m_editorFontSize);
+    emit editorFontSizeChanged();
 }
 
 void NoteController::reloadNotes()
