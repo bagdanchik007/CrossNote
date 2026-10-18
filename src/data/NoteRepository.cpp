@@ -142,6 +142,10 @@ public:
             if (error) *error = sqlError(pragma);
             return false;
         }
+        if (!pragma.exec(QStringLiteral("PRAGMA busy_timeout = 5000"))) {
+            if (error) *error = sqlError(pragma);
+            return false;
+        }
         if (!createSchema(error))
             return false;
         return true;
