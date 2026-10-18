@@ -802,6 +802,12 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
             ? QStringLiteral("Die Notiz wurde während des Speicherns geändert.") : sqlError(update);
         return false;
     }
+    QString indexError;
+    if (!m_impl->replaceSearchDocument(id, cleanTitle, content, normalizedTags(current->tags), &indexError)) {
+        if (error) *error = QStringLiteral("Die Notizdatei wurde gespeichert, aber der Suchindex ist veraltet: %1")
+            .arg(indexError);
+        return false;
+    }
     if (targetPath != current->relativePath)
         QFile::remove(QDir(m_impl->vault).filePath(current->relativePath));
 
