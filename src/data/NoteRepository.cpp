@@ -568,6 +568,15 @@ bool NoteRepository::refresh(QString *error)
     }
     allPaths.finish();
     for (const QString &path : stalePaths) {
+        QSqlQuery removeFromSearch(m_impl->database);
+        removeFromSearch.prepare(QStringLiteral(
+            "DELETE FROM note_search WHERE note_id = (SELECT id FROM notes WHERE relative_path = ?)"));
+        removeFromSearch.addBindValue(path);
+        if (!removeFromSearch.exec()) {
+            transaction.exec(QStringLiteral("ROLLBACK"));
+            if (error) *error = sqlError(removeFromSearch);
+            return false;
+        }
         QSqlQuery remove(m_impl->database);
         remove.prepare(QStringLiteral("DELETE FROM notes WHERE relative_path = ?"));
         remove.addBindValue(path);
