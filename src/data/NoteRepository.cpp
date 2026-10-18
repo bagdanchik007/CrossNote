@@ -798,6 +798,10 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
     }
 
     const QString cleanTitle = title.simplified().isEmpty() ? QStringLiteral("Neue Notiz") : title.simplified();
+    if (cleanTitle.size() > 160) {
+        if (error) *error = QStringLiteral("Der Titel darf höchstens 160 Zeichen lang sein.");
+        return std::nullopt;
+    }
     const QString relativePath = uniqueNotePath(m_impl->vault, safeFileStem(cleanTitle));
 
     const QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
