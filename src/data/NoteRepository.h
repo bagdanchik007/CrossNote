@@ -20,6 +20,7 @@ class NoteRepository final : public QObject
 
 public:
     explicit NoteRepository(QObject *parent = nullptr);
+    explicit NoteRepository(const QString &indexRoot, QObject *parent = nullptr);
     ~NoteRepository() override;
 
     [[nodiscard]] bool openVault(const QString &vaultPath, QString *error = nullptr);

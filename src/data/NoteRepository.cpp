@@ -28,16 +28,16 @@ QString safeAbsolutePath(const QString &vault, const QString &relativePath)
     const QString clean = QDir::cleanPath(relativePath);
     if (clean == QStringLiteral("..") || clean.startsWith(QStringLiteral("../")))
         return {};
-    const QString root = QDir(vault).absolutePath();
-    const QString candidate = QDir(root).absoluteFilePath(clean);
-    const QString prefix = root.endsWith(QDir::separator()) ? root : root + QDir::separator();
+    const QString root = QDir::fromNativeSeparators(QDir(vault).absolutePath());
+    const QString candidate = QDir::fromNativeSeparators(QDir(root).absoluteFilePath(clean));
+    const QString prefix = root.endsWith(u'/') ? root : root + u'/';
     Qt::CaseSensitivity sensitivity = Qt::CaseSensitive;
 #ifdef Q_OS_WIN
     sensitivity = Qt::CaseInsensitive;
 #endif
     if (!candidate.startsWith(prefix, sensitivity))
         return {};
-    const QString canonical = QFileInfo(candidate).canonicalFilePath();
+    const QString canonical = QDir::fromNativeSeparators(QFileInfo(candidate).canonicalFilePath());
     if (!canonical.isEmpty() && canonical != root && !canonical.startsWith(prefix, sensitivity))
         return {};
     return candidate;
@@ -76,6 +76,7 @@ class NoteRepository::Impl
 {
 public:
     QString vault;
+    QString indexRootOverride;
     QString connectionName;
     QSqlDatabase database;
 
@@ -115,8 +116,10 @@ public:
         }
 
         const QByteArray hash = QCryptographicHash::hash(vault.toUtf8(), QCryptographicHash::Sha256).toHex();
-        const QString indexRoot = QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
-                                      .filePath(QStringLiteral("vault-index"));
+        const QString indexRoot = indexRootOverride.isEmpty()
+            ? QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
+                  .filePath(QStringLiteral("vault-index"))
+            : indexRootOverride;
         if (!QDir().mkpath(indexRoot)) {
             if (error) *error = QStringLiteral("Der lokale Suchindex kann nicht angelegt werden.");
             return false;
@@ -198,26 +201,22 @@ public:
                 if (error) *error = sqlError(initializeVersion);
                 return false;
             }
+            initializeVersion.finish();
             version = 1;
         }
 
         if (version < 2) {
-            if (!database.transaction()) {
-                if (error) *error = database.lastError().text();
-                return false;
-            }
             QSqlQuery createSearchIndex(database);
             if (!createSearchIndex.exec(QStringLiteral(
                     "CREATE VIRTUAL TABLE IF NOT EXISTS note_search USING fts5("
                     "note_id UNINDEXED, title, content, tags, tokenize='unicode61 remove_diacritics 2')"))) {
-                database.rollback();
                 if (error) *error = sqlError(createSearchIndex);
                 return false;
             }
+            createSearchIndex.finish();
 
             QSqlQuery sourceNotes(database);
             if (!sourceNotes.exec(QStringLiteral("SELECT id, title, relative_path, tags FROM notes"))) {
-                database.rollback();
                 if (error) *error = sqlError(sourceNotes);
                 return false;
             }
@@ -232,7 +231,6 @@ public:
 
                 QString indexError;
                 if (!replaceSearchDocument(id, title, content, sourceNotes.value(3).toString(), &indexError)) {
-                    database.rollback();
                     if (error) *error = indexError;
                     return false;
                 }
@@ -240,14 +238,13 @@ public:
             sourceNotes.finish();
 
             QSqlQuery updateVersion(database);
-            if (!updateVersion.exec(QStringLiteral("INSERT INTO schema_version (version) VALUES (2)"))
-                || !database.commit()) {
+            if (!updateVersion.exec(QStringLiteral("INSERT INTO schema_version (version) VALUES (2)"))) {
                 const QString message = updateVersion.lastError().text().isEmpty()
                     ? database.lastError().text() : sqlError(updateVersion);
-                database.rollback();
                 if (error) *error = message;
                 return false;
             }
+            updateVersion.finish();
         }
         return true;
     }
@@ -262,6 +259,7 @@ public:
             if (error) *error = sqlError(remove);
             return false;
         }
+        remove.finish();
 
         QSqlQuery insert(database);
         insert.prepare(QStringLiteral(
@@ -274,6 +272,7 @@ public:
             if (error) *error = sqlError(insert);
             return false;
         }
+        insert.finish();
         return true;
     }
 
@@ -323,8 +322,14 @@ public:
 };
 
 NoteRepository::NoteRepository(QObject *parent)
+    : NoteRepository(QString(), parent)
+{
+}
+
+NoteRepository::NoteRepository(const QString &indexRoot, QObject *parent)
     : QObject(parent), m_impl(new Impl), m_watcher(this), m_refreshTimer(this)
 {
+    m_impl->indexRootOverride = indexRoot;
     m_refreshTimer.setSingleShot(true);
     m_refreshTimer.setInterval(250);
     const auto scheduleRefresh = [this](const QString &) { m_refreshTimer.start(); };
@@ -578,11 +583,11 @@ bool NoteRepository::refresh(QString *error)
         return false;
     }
 
-    QSqlQuery transaction(m_impl->database);
-    if (!transaction.exec(QStringLiteral("BEGIN IMMEDIATE"))) {
-        if (error) *error = sqlError(transaction);
+    if (!m_impl->database.transaction()) {
+        if (error) *error = m_impl->database.lastError().text();
         return false;
     }
+    const auto rollback = [this] { m_impl->database.rollback(); };
 
     QSet<QString> seenPaths;
     QDirIterator iterator(m_impl->vault, {QStringLiteral("*.md")}, QDir::Files,
@@ -618,6 +623,7 @@ bool NoteRepository::refresh(QString *error)
             favorite = existing.value(2).toBool();
             tags = parseTags(existing.value(3).toString());
         }
+        existing.finish();
 
         const Note parsed = parseMarkdownFile(text, existingId, info.completeBaseName(), relativePath);
         const QString id = parsed.id.isEmpty()
@@ -642,13 +648,14 @@ bool NoteRepository::refresh(QString *error)
         upsert.addBindValue(favorite);
         upsert.addBindValue(normalizedTags(tags));
         if (!upsert.exec()) {
-            transaction.exec(QStringLiteral("ROLLBACK"));
+            rollback();
             if (error) *error = sqlError(upsert);
             return false;
         }
+        upsert.finish();
         QString indexError;
         if (!m_impl->replaceSearchDocument(id, title, parsed.content, normalizedTags(tags), &indexError)) {
-            transaction.exec(QStringLiteral("ROLLBACK"));
+            rollback();
             if (error) *error = indexError;
             return false;
         }
@@ -656,7 +663,7 @@ bool NoteRepository::refresh(QString *error)
 
     QSqlQuery allPaths(m_impl->database);
     if (!allPaths.exec(QStringLiteral("SELECT relative_path FROM notes"))) {
-        transaction.exec(QStringLiteral("ROLLBACK"));
+        rollback();
         if (error) *error = sqlError(allPaths);
         return false;
     }
@@ -673,7 +680,7 @@ bool NoteRepository::refresh(QString *error)
             "DELETE FROM note_search WHERE note_id = (SELECT id FROM notes WHERE relative_path = ?)"));
         removeFromSearch.addBindValue(path);
         if (!removeFromSearch.exec()) {
-            transaction.exec(QStringLiteral("ROLLBACK"));
+            rollback();
             if (error) *error = sqlError(removeFromSearch);
             return false;
         }
@@ -681,14 +688,15 @@ bool NoteRepository::refresh(QString *error)
         remove.prepare(QStringLiteral("DELETE FROM notes WHERE relative_path = ?"));
         remove.addBindValue(path);
         if (!remove.exec()) {
-            transaction.exec(QStringLiteral("ROLLBACK"));
+            rollback();
             if (error) *error = sqlError(remove);
             return false;
         }
     }
 
-    if (!transaction.exec(QStringLiteral("COMMIT"))) {
-        if (error) *error = sqlError(transaction);
+    if (!m_impl->database.commit()) {
+        if (error) *error = QStringLiteral("Vault-Abgleich: %1").arg(m_impl->database.lastError().text());
+        rollback();
         return false;
     }
     updateWatcherPaths();
