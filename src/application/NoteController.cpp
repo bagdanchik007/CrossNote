@@ -189,6 +189,11 @@ void NoteController::setSearchQuery(const QString &query)
     clearError();
 }
 
+void NoteController::setTagFilter(const QString &tag)
+{
+    m_noteModel.setTagFilter(tag);
+}
+
 void NoteController::setSection(const QString &section)
 {
     m_noteModel.setSection(section);
