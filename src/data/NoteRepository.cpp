@@ -19,6 +19,8 @@
 namespace CrossNote {
 namespace {
 
+constexpr int CurrentSchemaVersion = 1;
+
 QString safeAbsolutePath(const QString &vault, const QString &relativePath)
 {
     if (relativePath.isEmpty() || QDir::isAbsolutePath(relativePath))
@@ -170,6 +172,11 @@ public:
         }
         if (!currentVersion.next()) {
             if (error) *error = QStringLiteral("Das Datenbankschema konnte nicht gelesen werden.");
+            return false;
+        }
+        const int version = currentVersion.value(0).toInt();
+        if (version > CurrentSchemaVersion) {
+            if (error) *error = QStringLiteral("Die lokale Datenbank stammt aus einer neueren CrossNote-Version.");
             return false;
         }
         if (currentVersion.value(0).isNull()) {
