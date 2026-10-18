@@ -185,13 +185,14 @@ public:
             if (error) *error = QStringLiteral("Das Datenbankschema konnte nicht gelesen werden.");
             return false;
         }
-        const int version = currentVersion.value(0).toInt();
+        const bool hasVersion = !currentVersion.value(0).isNull();
+        int version = currentVersion.value(0).toInt();
+        currentVersion.finish();
         if (version > CurrentSchemaVersion) {
             if (error) *error = QStringLiteral("Die lokale Datenbank stammt aus einer neueren CrossNote-Version.");
             return false;
         }
-        int version = currentVersion.value(0).toInt();
-        if (currentVersion.value(0).isNull()) {
+        if (!hasVersion) {
             QSqlQuery initializeVersion(database);
             if (!initializeVersion.exec(QStringLiteral("INSERT INTO schema_version (version) VALUES (1)"))) {
                 if (error) *error = sqlError(initializeVersion);
@@ -236,6 +237,7 @@ public:
                     return false;
                 }
             }
+            sourceNotes.finish();
 
             QSqlQuery updateVersion(database);
             if (!updateVersion.exec(QStringLiteral("INSERT INTO schema_version (version) VALUES (2)"))
