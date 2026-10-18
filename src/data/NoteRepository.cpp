@@ -348,6 +348,38 @@ bool NoteRepository::openVault(const QString &vaultPath, QString *error)
 QString NoteRepository::vaultPath() const { return m_impl->vault; }
 QVector<Note> NoteRepository::notes(QString *error) const { return m_impl->list(error); }
 
+bool NoteRepository::searchIds(const QString &query, QStringList *ids, QString *error) const
+{
+    if (!ids) {
+        if (error) *error = QStringLiteral("Für Suchergebnisse wurde kein Ziel übergeben.");
+        return false;
+    }
+    ids->clear();
+    if (query.trimmed().isEmpty())
+        return true;
+
+    QStringList terms;
+    const QRegularExpression tokenPattern(QStringLiteral("[\\p{L}\\p{N}_]+"));
+    auto matches = tokenPattern.globalMatch(query);
+    while (matches.hasNext()) {
+        const QString token = matches.next().captured();
+        terms.append(QStringLiteral("\"%1\"*").arg(token));
+    }
+    if (terms.isEmpty())
+        return true;
+
+    QSqlQuery search(m_impl->database);
+    search.prepare(QStringLiteral("SELECT note_id FROM note_search WHERE note_search MATCH ? ORDER BY rank"));
+    search.addBindValue(terms.join(QStringLiteral(" AND ")));
+    if (!search.exec()) {
+        if (error) *error = sqlError(search);
+        return false;
+    }
+    while (search.next())
+        ids->append(search.value(0).toString());
+    return true;
+}
+
 QVector<Note> NoteRepository::trashedNotes(QString *error) const
 {
     QVector<Note> result;
