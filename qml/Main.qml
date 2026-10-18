@@ -223,16 +223,25 @@ ApplicationWindow {
                     anchors.margins: 14
                     spacing: 10
 
-                    Label {
+                    RowLayout {
                         Layout.fillWidth: true
-                        text: window.currentSection === "favorites"
-                              ? qsTr("Favoriten")
-                              : window.currentSection === "recent"
-                                ? qsTr("Kürzlich geöffnet")
-                                : window.currentSection === "trash" ? qsTr("Papierkorb") : qsTr("Alle Notizen")
-                        color: "#20242c"
-                        font.pixelSize: 19
-                        font.bold: true
+                        Label {
+                            Layout.fillWidth: true
+                            text: window.currentSection === "favorites"
+                                  ? qsTr("Favoriten")
+                                  : window.currentSection === "recent"
+                                    ? qsTr("Kürzlich geöffnet")
+                                    : window.currentSection === "trash" ? qsTr("Papierkorb") : qsTr("Alle Notizen")
+                            color: "#20242c"
+                            font.pixelSize: 19
+                            font.bold: true
+                        }
+                        ToolButton {
+                            visible: noteController.noteModel.tagFilter.length > 0
+                            text: qsTr("Tag: %1 ×").arg(noteController.noteModel.tagFilter)
+                            Accessible.name: qsTr("Tagfilter entfernen")
+                            onClicked: noteController.setTagFilter("")
+                        }
                     }
 
                     TextField {
