@@ -21,6 +21,10 @@ ApplicationWindow {
         var safeBody = body.replace(/!\[([^\]]*)\](?:\([^)]*\)|\[[^\]]*\])/g, "[$1]")
         safeBody = safeBody.replace(/<img\b[^>]*>/gi, "")
         safeBody = safeBody.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+        safeBody = safeBody.replace(/\[\[([^\]]+)\]\]/g, function(match, target) {
+            var title = target.trim()
+            return "[" + title + "](crossnote:" + encodeURIComponent(title) + ")"
+        })
         return "# " + title + "\n\n" + safeBody
     }
     function saveEditor() {
@@ -463,6 +467,10 @@ ApplicationWindow {
                             color: "#252a33"
                             font.pixelSize: noteController.editorFontSize
                             wrapMode: Text.WordWrap
+                            onLinkActivated: function(link) {
+                                if (link.toString().startsWith("crossnote:"))
+                                    noteController.openNoteByTitle(decodeURIComponent(link.toString().substring(10)))
+                            }
                         }
                     }
 
