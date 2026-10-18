@@ -169,7 +169,26 @@ void NoteController::setTags(const QString &id, const QStringList &tags)
     setStatus(tr("Tags gespeichert"));
 }
 
-void NoteController::setSearchQuery(const QString &query) { m_noteModel.setQuery(query); }
+void NoteController::setSearchQuery(const QString &query)
+{
+    const QString normalized = query.trimmed();
+    m_noteModel.setQuery(normalized);
+    if (normalized.isEmpty()) {
+        m_noteModel.setSearchResultIds({}, false);
+        return;
+    }
+
+    QStringList ids;
+    QString error;
+    if (!m_repository.searchIds(normalized, &ids, &error)) {
+        m_noteModel.setSearchResultIds({}, false);
+        setError(error);
+        return;
+    }
+    m_noteModel.setSearchResultIds(ids, true);
+    clearError();
+}
+
 void NoteController::setSection(const QString &section)
 {
     m_noteModel.setSection(section);
