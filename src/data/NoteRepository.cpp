@@ -925,9 +925,12 @@ bool NoteRepository::moveToTrash(const QString &id, QString *error)
     QSqlQuery remove(m_impl->database);
     remove.prepare(QStringLiteral("DELETE FROM notes WHERE id = ?"));
     remove.addBindValue(id);
-    if (!insert.exec() || !remove.exec() || !m_impl->database.commit()) {
+    QString indexError;
+    const bool indexRemoved = m_impl->removeSearchDocument(id, &indexError);
+    if (!insert.exec() || !remove.exec() || !indexRemoved || !m_impl->database.commit()) {
         const QString message = !insert.lastError().text().isEmpty() ? sqlError(insert)
-            : !remove.lastError().text().isEmpty() ? sqlError(remove) : m_impl->database.lastError().text();
+            : !remove.lastError().text().isEmpty() ? sqlError(remove)
+            : !indexError.isEmpty() ? indexError : m_impl->database.lastError().text();
         m_impl->database.rollback();
         QFile::rename(absoluteTrash, absoluteOriginal);
         if (error) *error = message;
