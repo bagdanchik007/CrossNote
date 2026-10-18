@@ -1,10 +1,14 @@
 # Technische Übersicht
 
+## Aktueller Stand
+
+Die Qt-Quick-App bietet einen lokalen Markdown-Vault mit Notizliste, Editor, Vorschau, Autospeichern, Favoriten, Tags, Papierkorb, Konfliktkopien und einer pro Gerät gespeicherten Editor-Schriftgröße. SQLite speichert Metadaten; die Markdown-Dateien bleiben die maßgebliche Quelle für Notizinhalte. Derzeit filtert die App ihre geladene Notizliste lokal; ein FTS5-Index ist noch offen.
+
 ## Komponenten
 
 - **Desktop- und Mobil-App:** C++23, Qt 6, Qt Quick/QML und CMake.
 - **Notizformat:** UTF-8-Markdown-Dateien in einem vom Nutzer gewählten Notizordner.
-- **Lokaler Index:** SQLite mit versioniertem Schema; FTS5 dient später der Volltextsuche.
+- **Lokaler Index:** SQLite mit versioniertem Schema für Metadaten und künftigem FTS5-Volltextindex.
 - **Website:** eigenes Webprojekt für Projektinformationen, Downloads und Dokumentation.
 - **Online-Sync:** separater Dienst und API; erst nach der lokalen Dateiablage und dem lokalen Abgleich.
 
@@ -16,6 +20,6 @@
 4. Konflikte beim Sync werden sichtbar gemacht und verlieren keine Notizänderungen.
 5. Website und Sync-Dienst werden getrennt von der nativen Qt-App versioniert und betrieben.
 
-## Aktueller Stand
+## Geplante Erweiterungen
 
-Das Repository enthält das Qt-Quick-Grundfenster mit Navigation und leeren Ansichten sowie die Build-Konfiguration. Notizverwaltung, Datenbank, Website und Sync werden in späteren Phasen ergänzt.
+Als nächste lokale Ausbaustufen folgen FTS5-Suche, zuverlässige Schema-Migrationen, Markdown-Import und Backups. Website, Online-Sync und mobile Apps bleiben getrennte spätere Vorhaben.
