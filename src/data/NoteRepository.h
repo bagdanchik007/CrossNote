@@ -28,6 +28,7 @@ public:
     [[nodiscard]] QVector<Note> trashedNotes(QString *error = nullptr) const;
     [[nodiscard]] bool searchIds(const QString &query, QStringList *ids,
                                  QString *error = nullptr) const;
+    [[nodiscard]] bool rebuildSearchIndex(QString *error = nullptr);
     [[nodiscard]] std::optional<Note> note(const QString &id, bool includeContent = true,
                                            QString *error = nullptr) const;
 

@@ -459,6 +459,56 @@ Note parseMarkdownFile(const QString &text, const QString &fallbackId,
 
 } // namespace
 
+bool NoteRepository::rebuildSearchIndex(QString *error)
+{
+    if (!m_impl->database.transaction()) {
+        if (error) *error = m_impl->database.lastError().text();
+        return false;
+    }
+
+    QSqlQuery clear(m_impl->database);
+    if (!clear.exec(QStringLiteral("DELETE FROM note_search"))) {
+        m_impl->database.rollback();
+        if (error) *error = sqlError(clear);
+        return false;
+    }
+    QSqlQuery source(m_impl->database);
+    if (!source.exec(QStringLiteral("SELECT id, title, relative_path, tags FROM notes"))) {
+        m_impl->database.rollback();
+        if (error) *error = sqlError(source);
+        return false;
+    }
+    while (source.next()) {
+        const QString id = source.value(0).toString();
+        const QString title = source.value(1).toString();
+        const QString path = safeAbsolutePath(m_impl->vault, source.value(2).toString());
+        QFile file(path);
+        if (path.isEmpty() || !file.open(QIODevice::ReadOnly)) {
+            m_impl->database.rollback();
+            if (error) *error = path.isEmpty()
+                ? QStringLiteral("Ein Notizpfad liegt außerhalb des geöffneten Vaults.")
+                : file.errorString();
+            return false;
+        }
+        const Note parsed = parseMarkdownFile(QString::fromUtf8(file.readAll()), id, title,
+                                              source.value(2).toString());
+        QString indexError;
+        if (!m_impl->replaceSearchDocument(id, title, parsed.content,
+                                           source.value(3).toString(), &indexError)) {
+            m_impl->database.rollback();
+            if (error) *error = indexError;
+            return false;
+        }
+    }
+    if (!m_impl->database.commit()) {
+        if (error) *error = m_impl->database.lastError().text();
+        m_impl->database.rollback();
+        return false;
+    }
+    emit notesChanged();
+    return true;
+}
+
 std::optional<Note> NoteRepository::note(const QString &id, bool includeContent, QString *error) const
 {
     QSqlQuery query(m_impl->database);
