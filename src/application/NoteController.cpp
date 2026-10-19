@@ -24,6 +24,9 @@ QString NoteController::selectedId() const { return m_selectedId; }
 QString NoteController::selectedTitle() const { return m_selectedTitle; }
 QString NoteController::selectedContent() const { return m_selectedContent; }
 QStringList NoteController::selectedTags() const { return m_selectedTags; }
+QStringList NoteController::selectedLinks() const { return m_selectedLinks; }
+QStringList NoteController::selectedBacklinks() const { return m_selectedBacklinks; }
+QStringList NoteController::selectedMissingLinks() const { return m_selectedMissingLinks; }
 bool NoteController::hasSelection() const { return !m_selectedId.isEmpty(); }
 QString NoteController::statusText() const { return m_statusText; }
 QString NoteController::errorText() const { return m_errorText; }
@@ -60,6 +63,7 @@ void NoteController::setVaultPath(const QString &path)
     m_selectedContent.clear();
     m_selectedHash.clear();
     m_selectedTags.clear();
+    refreshLinkAnalysis();
     emit vaultPathChanged();
     emit currentNoteChanged();
     reloadNotes();
@@ -99,6 +103,7 @@ void NoteController::openNote(const QString &id)
     m_selectedHash = selected->contentHash;
     m_selectedTags = selected->tags;
     emit selectedTagsChanged();
+    refreshLinkAnalysis();
     m_repository.markOpened(id, &error);
     emit currentNoteChanged();
     clearError();
@@ -134,6 +139,7 @@ bool NoteController::saveCurrent(const QString &title, const QString &content)
     m_selectedContent = content;
     const auto saved = m_repository.note(m_selectedId, true);
     if (saved) m_selectedHash = saved->contentHash;
+    refreshLinkAnalysis();
     clearError();
     if (!m_conflictPath.isEmpty()) {
         setStatus(tr("Externe Fassung als Konfliktkopie gesichert: %1").arg(m_conflictPath));
@@ -159,6 +165,7 @@ void NoteController::deleteCurrent()
     m_selectedContent.clear();
     m_selectedHash.clear();
     m_selectedTags.clear();
+    refreshLinkAnalysis();
     emit currentNoteChanged();
     clearError();
     setStatus(tr("Notiz in den Papierkorb verschoben"));
@@ -236,6 +243,7 @@ void NoteController::setSection(const QString &section)
         m_selectedHash.clear();
         m_selectedTags.clear();
         emit selectedTagsChanged();
+        refreshLinkAnalysis();
         emit currentNoteChanged();
     }
     reloadNotes();
@@ -271,6 +279,17 @@ void NoteController::reloadNotes()
     m_noteModel.setNotes(items);
     if (!error.isEmpty())
         setError(error);
+}
+
+void NoteController::refreshLinkAnalysis()
+{
+    NoteRepository::LinkAnalysis analysis;
+    if (!m_selectedId.isEmpty())
+        analysis = m_repository.analyzeLinks(m_selectedId);
+    m_selectedLinks = analysis.outgoing;
+    m_selectedBacklinks = analysis.backlinks;
+    m_selectedMissingLinks = analysis.missing;
+    emit linkAnalysisChanged();
 }
 
 void NoteController::setStatus(const QString &message)

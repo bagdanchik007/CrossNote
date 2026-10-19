@@ -18,6 +18,9 @@ class NoteController final : public QObject
     Q_PROPERTY(QString selectedTitle READ selectedTitle NOTIFY currentNoteChanged)
     Q_PROPERTY(QString selectedContent READ selectedContent NOTIFY currentNoteChanged)
     Q_PROPERTY(QStringList selectedTags READ selectedTags NOTIFY selectedTagsChanged)
+    Q_PROPERTY(QStringList selectedLinks READ selectedLinks NOTIFY linkAnalysisChanged)
+    Q_PROPERTY(QStringList selectedBacklinks READ selectedBacklinks NOTIFY linkAnalysisChanged)
+    Q_PROPERTY(QStringList selectedMissingLinks READ selectedMissingLinks NOTIFY linkAnalysisChanged)
     Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY currentNoteChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
     Q_PROPERTY(QString errorText READ errorText NOTIFY errorTextChanged)
@@ -32,6 +35,9 @@ public:
     [[nodiscard]] QString selectedTitle() const;
     [[nodiscard]] QString selectedContent() const;
     [[nodiscard]] QStringList selectedTags() const;
+    [[nodiscard]] QStringList selectedLinks() const;
+    [[nodiscard]] QStringList selectedBacklinks() const;
+    [[nodiscard]] QStringList selectedMissingLinks() const;
     [[nodiscard]] bool hasSelection() const;
     [[nodiscard]] QString statusText() const;
     [[nodiscard]] QString errorText() const;
@@ -57,12 +63,14 @@ signals:
     void vaultPathChanged();
     void currentNoteChanged();
     void selectedTagsChanged();
+    void linkAnalysisChanged();
     void statusTextChanged();
     void errorTextChanged();
     void editorFontSizeChanged();
 
 private:
     void reloadNotes();
+    void refreshLinkAnalysis();
     void setStatus(const QString &message);
     void setError(const QString &message);
     void clearError();
@@ -75,6 +83,9 @@ private:
     QByteArray m_selectedHash;
     QString m_conflictPath;
     QStringList m_selectedTags;
+    QStringList m_selectedLinks;
+    QStringList m_selectedBacklinks;
+    QStringList m_selectedMissingLinks;
     QString m_statusText;
     QString m_errorText;
     int m_editorFontSize = 16;
