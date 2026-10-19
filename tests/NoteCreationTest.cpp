@@ -21,6 +21,7 @@ private slots:
     void dailyNotesAreIdempotentPerDate();
     void createsNotesWithPrefilledMarkdown();
     void archivesPreviousVersionsOutsideTheActiveVaultIndex();
+    void exportsMarkdownWithoutChangingTheVault();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -271,6 +272,36 @@ void NoteCreationTest::archivesPreviousVersionsOutsideTheActiveVaultIndex()
     QStringList ids;
     QVERIFY2(repository.searchIds(QStringLiteral("original"), &ids, &error), qPrintable(error));
     QVERIFY(!ids.contains(created->id));
+}
+
+void NoteCreationTest::exportsMarkdownWithoutChangingTheVault()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QTemporaryDir output(QDir::current().filePath(QStringLiteral("test-export-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    QVERIFY(output.isValid());
+
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Export me"), QStringLiteral("Exact markdown bytes"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+
+    const QString sourcePath = vault.filePath(created->relativePath);
+    QFile source(sourcePath);
+    QVERIFY(source.open(QIODevice::ReadOnly));
+    const QByteArray original = source.readAll();
+    source.close();
+
+    const QString destination = output.filePath(QStringLiteral("exported-note.md"));
+    QVERIFY2(repository.exportNote(created->id, destination, &error), qPrintable(error));
+    QFile exported(destination);
+    QVERIFY(exported.open(QIODevice::ReadOnly));
+    QCOMPARE(exported.readAll(), original);
+    QVERIFY(!repository.exportNote(created->id, sourcePath, &error));
+    QCOMPARE(repository.notes(&error).size(), 1);
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
