@@ -79,10 +79,38 @@ bool NoteController::createNote(const QString &title)
         setError(error);
         return false;
     }
+    return activateCreatedNote(*created);
+}
+
+bool NoteController::createNoteWithTemplate(const QString &title, const QString &templateId)
+{
+    QString initialContent;
+    if (templateId == QStringLiteral("meeting")) {
+        initialContent = tr("## Datum\n\n## Teilnehmer\n\n## Themen\n\n- \n\n## Beschlüsse\n\n## Aufgaben\n\n- [ ] ");
+    } else if (templateId == QStringLiteral("project")) {
+        initialContent = tr("## Ziel\n\n## Status\n\n## Nächste Schritte\n\n- [ ] \n\n## Notizen\n");
+    } else if (templateId == QStringLiteral("daily")) {
+        initialContent = tr("## Fokus\n\n## Notizen\n\n## Aufgaben\n\n- [ ] \n\n## Rückblick\n");
+    } else if (templateId != QStringLiteral("blank")) {
+        setError(tr("Die ausgewählte Vorlage ist unbekannt."));
+        return false;
+    }
+
+    QString error;
+    const auto created = m_repository.createNote(title, initialContent, &error);
+    if (!created) {
+        setError(error);
+        return false;
+    }
+    return activateCreatedNote(*created);
+}
+
+bool NoteController::activateCreatedNote(const Note &note)
+{
     setSection(QStringLiteral("notes"));
     setTagFilter(QString());
     setSearchQuery(QString());
-    openNote(created->id);
+    openNote(note.id);
     setStatus(tr("Notiz erstellt"));
     return true;
 }
