@@ -878,6 +878,12 @@ QString markdownForNote(const QString &id, const QString &title, const QString &
 
 std::optional<Note> NoteRepository::createNote(const QString &title, QString *error)
 {
+    return createNote(title, QString(), error);
+}
+
+std::optional<Note> NoteRepository::createNote(const QString &title, const QString &initialContent,
+                                                QString *error)
+{
     if (m_impl->vault.isEmpty()) {
         if (error) *error = QStringLiteral("Öffne zuerst einen Notizordner.");
         return std::nullopt;
@@ -908,7 +914,7 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
         if (error) *error = file.errorString();
         return std::nullopt;
     }
-    const QByteArray contents = markdownForNote(id, cleanTitle, {}, {}).toUtf8();
+    const QByteArray contents = markdownForNote(id, cleanTitle, initialContent, {}).toUtf8();
     if (file.write(contents) != contents.size() || !file.commit()) {
         if (error) *error = file.errorString();
         return std::nullopt;
@@ -936,7 +942,7 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
         return std::nullopt;
     }
     QString indexError;
-    if (!m_impl->replaceSearchDocument(id, cleanTitle, {}, QStringLiteral("[]"), &indexError)) {
+    if (!m_impl->replaceSearchDocument(id, cleanTitle, initialContent, QStringLiteral("[]"), &indexError)) {
         m_impl->database.rollback();
         QFile::remove(QDir(m_impl->vault).filePath(relativePath));
         if (error) *error = indexError;
@@ -954,6 +960,7 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
     created.id = id;
     created.title = cleanTitle;
     created.relativePath = relativePath;
+    created.content = initialContent;
     created.createdAt = now;
     created.updatedAt = now;
     created.contentHash = QCryptographicHash::hash(contents, QCryptographicHash::Sha256);

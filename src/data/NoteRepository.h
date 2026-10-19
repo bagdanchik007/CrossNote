@@ -44,6 +44,8 @@ public:
     [[nodiscard]] LinkAnalysis analyzeLinks(const QString &noteId, QString *error = nullptr) const;
 
     [[nodiscard]] std::optional<Note> createNote(const QString &title, QString *error = nullptr);
+    [[nodiscard]] std::optional<Note> createNote(const QString &title, const QString &initialContent,
+                                                 QString *error = nullptr);
     [[nodiscard]] std::optional<Note> dailyNote(const QDate &date = QDate::currentDate(),
                                                 QString *error = nullptr);
     [[nodiscard]] bool saveNote(const QString &id, const QString &title,
