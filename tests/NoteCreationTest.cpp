@@ -18,6 +18,7 @@ private slots:
     void keepsFullTextIndexInSyncWithEditsAndTags();
     void removesAndRestoresNotesWithTheirSearchEntries();
     void analyzesWikiLinksAndBacklinks();
+    void dailyNotesAreIdempotentPerDate();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -196,6 +197,27 @@ void NoteCreationTest::analyzesWikiLinksAndBacklinks()
     const auto targetLinks = repository.analyzeLinks(target->id, &error);
     QVERIFY2(error.isEmpty(), qPrintable(error));
     QCOMPARE(targetLinks.backlinks, QStringList({QStringLiteral("Design notes")}));
+}
+
+void NoteCreationTest::dailyNotesAreIdempotentPerDate()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const QDate day(2026, 6, 13);
+    const auto first = repository.dailyNote(day, &error);
+    QVERIFY2(first.has_value(), qPrintable(error));
+    const auto second = repository.dailyNote(day, &error);
+    QVERIFY2(second.has_value(), qPrintable(error));
+
+    QCOMPARE(first->id, second->id);
+    QCOMPARE(first->title, QStringLiteral("2026-06-13"));
+    QCOMPARE(repository.notes(&error).size(), 1);
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
