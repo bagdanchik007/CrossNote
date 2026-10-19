@@ -9,6 +9,14 @@ ApplicationWindow {
     property string currentSection: "notes"
     property bool previewMode: false
     property string createNoteError: ""
+    property bool darkTheme: noteController.darkTheme
+    readonly property color pageColor: darkTheme ? "#171a21" : "#f3f5f8"
+    readonly property color panelColor: darkTheme ? "#222732" : "#ffffff"
+    readonly property color lineColor: darkTheme ? "#394150" : "#e3e7ec"
+    readonly property color primaryTextColor: darkTheme ? "#e7eaf0" : "#20242c"
+    readonly property color bodyTextColor: darkTheme ? "#d1d6df" : "#252a33"
+    readonly property color secondaryTextColor: darkTheme ? "#a0a9b8" : "#687181"
+    readonly property color mutedTextColor: darkTheme ? "#a0a9b8" : "#737c8a"
 
     width: 1280
     height: 820
@@ -16,7 +24,7 @@ ApplicationWindow {
     minimumHeight: 600
     visible: true
     title: qsTr("CrossNote")
-    color: "#f3f5f8"
+    color: pageColor
 
     function safeMarkdown(title, body) {
         var safeBody = body.replace(/!\[([^\]]*)\](?:\([^)]*\)|\[[^\]]*\])/g, "[$1]")
@@ -188,8 +196,8 @@ ApplicationWindow {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 62
-            color: "#ffffff"
-            border.color: "#e3e7ec"
+            color: window.panelColor
+            border.color: window.lineColor
             border.width: 1
 
             RowLayout {
@@ -225,7 +233,7 @@ ApplicationWindow {
                     Layout.maximumWidth: 320
                     elide: Text.ElideMiddle
                     text: noteController.vaultPath
-                    color: "#687181"
+                    color: window.secondaryTextColor
                     font.pixelSize: 12
                     Accessible.name: qsTr("Aktueller Notizordner")
                 }
@@ -240,6 +248,13 @@ ApplicationWindow {
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Suchindex aus den Markdown-Dateien wiederherstellen")
                     onClicked: noteController.rebuildSearchIndex()
+                }
+                ToolButton {
+                    text: noteController.darkTheme ? "☀" : "☾"
+                    Accessible.name: noteController.darkTheme ? qsTr("Helles Design aktivieren") : qsTr("Dunkles Design aktivieren")
+                    ToolTip.visible: hovered
+                    ToolTip.text: Accessible.name
+                    onClicked: noteController.setDarkTheme(!noteController.darkTheme)
                 }
             }
         }
@@ -338,8 +353,8 @@ ApplicationWindow {
             Rectangle {
                 Layout.fillHeight: true
                 Layout.preferredWidth: 330
-                color: "#ffffff"
-                border.color: "#e3e7ec"
+                color: window.panelColor
+                border.color: window.lineColor
                 border.width: 1
 
                 ColumnLayout {
@@ -356,7 +371,7 @@ ApplicationWindow {
                                   : window.currentSection === "recent"
                                     ? qsTr("Kürzlich geöffnet")
                                     : window.currentSection === "trash" ? qsTr("Papierkorb") : qsTr("Alle Notizen")
-                            color: "#20242c"
+                            color: window.primaryTextColor
                             font.pixelSize: 19
                             font.bold: true
                         }
@@ -421,7 +436,7 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         text: title
                                         elide: Text.ElideRight
-                                        color: "#252a33"
+                                        color: window.bodyTextColor
                                         font.pixelSize: 14
                                         font.bold: true
                                     }
@@ -429,7 +444,7 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         text: preview.length ? preview : qsTr("Leere Notiz")
                                         elide: Text.ElideRight
-                                        color: "#737c8a"
+                                        color: window.mutedTextColor
                                         font.pixelSize: 12
                                     }
                                     Flow {
@@ -473,7 +488,7 @@ ApplicationWindow {
                                 text: searchField.text.length
                                       ? qsTr("Versuche einen anderen Suchbegriff.")
                                       : qsTr("Erstelle deine erste Notiz mit der Schaltfläche oben.")
-                                color: "#737c8a"
+                                color: window.mutedTextColor
                                 font.pixelSize: 13
                                 wrapMode: Text.WordWrap
                                 horizontalAlignment: Text.AlignHCenter
@@ -547,8 +562,8 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     radius: 10
-                    color: "#ffffff"
-                    border.color: "#e3e7ec"
+                    color: window.panelColor
+                    border.color: window.lineColor
 
                     TextArea {
                         id: bodyEditor
@@ -582,7 +597,7 @@ ApplicationWindow {
                             width: parent.width
                             textFormat: Text.MarkdownText
                             text: window.safeMarkdown(titleField.text, bodyEditor.text)
-                            color: "#252a33"
+                            color: window.bodyTextColor
                             font.pixelSize: noteController.editorFontSize
                             wrapMode: Text.WordWrap
                             onLinkActivated: function(link) {
@@ -600,7 +615,7 @@ ApplicationWindow {
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: qsTr("Dein Notizbereich")
-                            color: "#20242c"
+                            color: window.primaryTextColor
                             font.pixelSize: 25
                             font.bold: true
                         }
@@ -608,7 +623,7 @@ ApplicationWindow {
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
                             text: qsTr("Erstelle eine Notiz oder wähle links eine vorhandene aus. Deine Markdown-Dateien bleiben in deinem Vault.")
-                            color: "#687181"
+                            color: window.secondaryTextColor
                             font.pixelSize: 15
                             wrapMode: Text.WordWrap
                             horizontalAlignment: Text.AlignHCenter
@@ -627,7 +642,7 @@ ApplicationWindow {
                     Label {
                         visible: noteController.selectedLinks.length > 0
                         text: qsTr("Verlinkt:")
-                        color: "#687181"
+                        color: window.secondaryTextColor
                     }
                     Repeater {
                         model: noteController.selectedLinks
@@ -641,7 +656,7 @@ ApplicationWindow {
                     Label {
                         visible: noteController.selectedBacklinks.length > 0
                         text: qsTr("Rückverweise:")
-                        color: "#687181"
+                        color: window.secondaryTextColor
                     }
                     Repeater {
                         model: noteController.selectedBacklinks
@@ -682,7 +697,7 @@ ApplicationWindow {
                     }
                     Label {
                         text: noteController.hasSelection ? qsTr("%1 Wörter").arg(bodyEditor.text.trim().length ? bodyEditor.text.trim().split(/\\s+/).length : 0) : ""
-                        color: "#687181"
+                        color: window.secondaryTextColor
                     }
                 }
             }
@@ -691,8 +706,8 @@ ApplicationWindow {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 30
-            color: "#ffffff"
-            border.color: "#e3e7ec"
+            color: window.panelColor
+            border.color: window.lineColor
             border.width: 1
             Label {
                 anchors.verticalCenter: parent.verticalCenter
