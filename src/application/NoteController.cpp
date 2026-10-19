@@ -9,7 +9,9 @@ namespace CrossNote {
 NoteController::NoteController(QObject *parent)
     : QObject(parent), m_repository(), m_noteModel()
 {
-    m_editorFontSize = qBound(12, QSettings().value(QStringLiteral("editor/fontSize"), 16).toInt(), 32);
+    QSettings settings;
+    m_editorFontSize = qBound(12, settings.value(QStringLiteral("editor/fontSize"), 16).toInt(), 32);
+    m_darkTheme = settings.value(QStringLiteral("appearance/darkTheme"), false).toBool();
     connect(&m_repository, &NoteRepository::notesChanged,
             this, &NoteController::reloadNotes);
     connect(&m_repository, &NoteRepository::errorOccurred,
@@ -31,6 +33,7 @@ bool NoteController::hasSelection() const { return !m_selectedId.isEmpty(); }
 QString NoteController::statusText() const { return m_statusText; }
 QString NoteController::errorText() const { return m_errorText; }
 int NoteController::editorFontSize() const { return m_editorFontSize; }
+bool NoteController::darkTheme() const { return m_darkTheme; }
 
 void NoteController::initialize()
 {
@@ -330,6 +333,15 @@ void NoteController::setEditorFontSize(int size)
     m_editorFontSize = boundedSize;
     QSettings().setValue(QStringLiteral("editor/fontSize"), m_editorFontSize);
     emit editorFontSizeChanged();
+}
+
+void NoteController::setDarkTheme(bool enabled)
+{
+    if (m_darkTheme == enabled)
+        return;
+    m_darkTheme = enabled;
+    QSettings().setValue(QStringLiteral("appearance/darkTheme"), m_darkTheme);
+    emit themeChanged();
 }
 
 void NoteController::reloadNotes()

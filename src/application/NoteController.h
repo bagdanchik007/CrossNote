@@ -25,6 +25,7 @@ class NoteController final : public QObject
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
     Q_PROPERTY(QString errorText READ errorText NOTIFY errorTextChanged)
     Q_PROPERTY(int editorFontSize READ editorFontSize NOTIFY editorFontSizeChanged)
+    Q_PROPERTY(bool darkTheme READ darkTheme NOTIFY themeChanged)
 
 public:
     explicit NoteController(QObject *parent = nullptr);
@@ -42,6 +43,7 @@ public:
     [[nodiscard]] QString statusText() const;
     [[nodiscard]] QString errorText() const;
     [[nodiscard]] int editorFontSize() const;
+    [[nodiscard]] bool darkTheme() const;
 
     Q_INVOKABLE void initialize();
     Q_INVOKABLE void setVaultPath(const QString &path);
@@ -61,6 +63,7 @@ public:
     Q_INVOKABLE void setSection(const QString &section);
     Q_INVOKABLE void restoreFromTrash(const QString &id);
     Q_INVOKABLE void setEditorFontSize(int size);
+    Q_INVOKABLE void setDarkTheme(bool enabled);
 
 signals:
     void vaultPathChanged();
@@ -70,6 +73,7 @@ signals:
     void statusTextChanged();
     void errorTextChanged();
     void editorFontSizeChanged();
+    void themeChanged();
 
 private:
     void reloadNotes();
@@ -93,6 +97,7 @@ private:
     QString m_statusText;
     QString m_errorText;
     int m_editorFontSize = 16;
+    bool m_darkTheme = false;
 };
 
 } // namespace CrossNote
