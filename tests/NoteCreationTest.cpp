@@ -15,6 +15,7 @@ private slots:
     void createsSearchableMarkdownNote();
     void createsPortableUniqueFilenames();
     void indexesMarkdownAddedAfterVaultOpen();
+    void keepsFullTextIndexInSyncWithEditsAndTags();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -98,6 +99,42 @@ Borrowed knowledge.
     QVERIFY2(imported.has_value(), qPrintable(error));
     QVERIFY(imported->content.contains(QStringLiteral("Borrowed knowledge")));
     QVERIFY(imported->tags.contains(QStringLiteral("external")));
+}
+
+void NoteCreationTest::keepsFullTextIndexInSyncWithEditsAndTags()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Research"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+
+    auto current = repository.note(created->id, true, &error);
+    QVERIFY2(current.has_value(), qPrintable(error));
+    QVERIFY2(repository.saveNote(created->id, created->title, QStringLiteral("first draft"),
+                                 current->contentHash, &error), qPrintable(error));
+
+    QStringList ids;
+    QVERIFY2(repository.searchIds(QStringLiteral("draft"), &ids, &error), qPrintable(error));
+    QVERIFY(ids.contains(created->id));
+
+    current = repository.note(created->id, true, &error);
+    QVERIFY2(current.has_value(), qPrintable(error));
+    QVERIFY2(repository.saveNote(created->id, created->title, QStringLiteral("final manuscript"),
+                                 current->contentHash, &error), qPrintable(error));
+    QVERIFY2(repository.setTags(created->id, {QStringLiteral("roadmap")}, &error), qPrintable(error));
+
+    QVERIFY2(repository.searchIds(QStringLiteral("draft"), &ids, &error), qPrintable(error));
+    QVERIFY(!ids.contains(created->id));
+    QVERIFY2(repository.searchIds(QStringLiteral("manuscript"), &ids, &error), qPrintable(error));
+    QVERIFY(ids.contains(created->id));
+    QVERIFY2(repository.searchIds(QStringLiteral("roadmap"), &ids, &error), qPrintable(error));
+    QVERIFY(ids.contains(created->id));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
