@@ -20,6 +20,7 @@ private slots:
     void analyzesWikiLinksAndBacklinks();
     void dailyNotesAreIdempotentPerDate();
     void createsNotesWithPrefilledMarkdown();
+    void archivesPreviousVersionsOutsideTheActiveVaultIndex();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -242,6 +243,34 @@ void NoteCreationTest::createsNotesWithPrefilledMarkdown()
     QStringList ids;
     QVERIFY2(repository.searchIds(QStringLiteral("requirements"), &ids, &error), qPrintable(error));
     QVERIFY(ids.contains(created->id));
+}
+
+void NoteCreationTest::archivesPreviousVersionsOutsideTheActiveVaultIndex()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Revision"), QStringLiteral("original phrase"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QVERIFY2(repository.saveNote(created->id, created->title, QStringLiteral("updated phrase"),
+                                 created->contentHash, &error), qPrintable(error));
+
+    const QString backupDirectory = vault.filePath(QStringLiteral(".backups/%1").arg(created->id));
+    const QStringList backups = QDir(backupDirectory).entryList({QStringLiteral("*.md")}, QDir::Files);
+    QCOMPARE(backups.size(), 1);
+    QFile previous(QDir(backupDirectory).filePath(backups.first()));
+    QVERIFY(previous.open(QIODevice::ReadOnly));
+    QVERIFY(QString::fromUtf8(previous.readAll()).contains(QStringLiteral("original phrase")));
+
+    QCOMPARE(repository.notes(&error).size(), 1);
+    QStringList ids;
+    QVERIFY2(repository.searchIds(QStringLiteral("original"), &ids, &error), qPrintable(error));
+    QVERIFY(!ids.contains(created->id));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
