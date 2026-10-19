@@ -19,6 +19,7 @@ private slots:
     void removesAndRestoresNotesWithTheirSearchEntries();
     void analyzesWikiLinksAndBacklinks();
     void dailyNotesAreIdempotentPerDate();
+    void createsNotesWithPrefilledMarkdown();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -218,6 +219,29 @@ void NoteCreationTest::dailyNotesAreIdempotentPerDate()
     QCOMPARE(first->id, second->id);
     QCOMPARE(first->title, QStringLiteral("2026-06-13"));
     QCOMPARE(repository.notes(&error).size(), 1);
+}
+
+void NoteCreationTest::createsNotesWithPrefilledMarkdown()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const QString body = QStringLiteral("## Agenda\n\n- [ ] Confirm requirements\n- [ ] Assign an owner");
+    const auto created = repository.createNote(QStringLiteral("Planning"), body, &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QCOMPARE(created->content, body);
+
+    const auto reopened = repository.note(created->id, true, &error);
+    QVERIFY2(reopened.has_value(), qPrintable(error));
+    QCOMPARE(reopened->content, body);
+    QStringList ids;
+    QVERIFY2(repository.searchIds(QStringLiteral("requirements"), &ids, &error), qPrintable(error));
+    QVERIFY(ids.contains(created->id));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
