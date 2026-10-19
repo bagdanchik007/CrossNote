@@ -619,10 +619,16 @@ ApplicationWindow {
                     }
                     Repeater {
                         model: noteController.selectedMissingLinks
-                        delegate: Label {
+                        delegate: Button {
                             required property string modelData
                             text: modelData
-                            color: "#b42318"
+                            Accessible.name: qsTr("Fehlende Notiz %1 erstellen").arg(modelData)
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Erstellt eine Notiz für dieses Linkziel")
+                            onClicked: {
+                                if (window.saveEditor())
+                                    noteController.createNote(modelData)
+                            }
                         }
                     }
                 }
