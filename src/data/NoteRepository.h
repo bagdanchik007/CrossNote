@@ -19,6 +19,12 @@ class NoteRepository final : public QObject
     Q_OBJECT
 
 public:
+    struct LinkAnalysis {
+        QStringList outgoing;
+        QStringList backlinks;
+        QStringList missing;
+    };
+
     explicit NoteRepository(QObject *parent = nullptr);
     explicit NoteRepository(const QString &indexRoot, QObject *parent = nullptr);
     ~NoteRepository() override;
@@ -34,6 +40,7 @@ public:
                                            QString *error = nullptr) const;
     [[nodiscard]] std::optional<QString> noteIdForTitle(const QString &title,
                                                          QString *error = nullptr) const;
+    [[nodiscard]] LinkAnalysis analyzeLinks(const QString &noteId, QString *error = nullptr) const;
 
     [[nodiscard]] std::optional<Note> createNote(const QString &title, QString *error = nullptr);
     [[nodiscard]] bool saveNote(const QString &id, const QString &title,

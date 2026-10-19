@@ -16,6 +16,8 @@
 #include <QSet>
 #include <QUuid>
 
+#include <algorithm>
+
 namespace CrossNote {
 namespace {
 
@@ -574,6 +576,75 @@ std::optional<QString> NoteRepository::noteIdForTitle(const QString &title, QStr
     if (!query.next())
         return std::nullopt;
     return query.value(0).toString();
+}
+
+NoteRepository::LinkAnalysis NoteRepository::analyzeLinks(const QString &noteId, QString *error) const
+{
+    LinkAnalysis result;
+    if (error)
+        error->clear();
+
+    QString listError;
+    const QVector<Note> allNotes = m_impl->list(&listError);
+    if (!listError.isEmpty()) {
+        if (error) *error = listError;
+        return result;
+    }
+
+    const auto target = std::find_if(allNotes.cbegin(), allNotes.cend(), [&noteId](const Note &item) {
+        return item.id == noteId;
+    });
+    if (target == allNotes.cend()) {
+        if (error) *error = QStringLiteral("Die ausgewählte Notiz wurde nicht gefunden.");
+        return result;
+    }
+
+    QSet<QString> knownTitles;
+    for (const Note &item : allNotes)
+        knownTitles.insert(item.title.simplified().toCaseFolded());
+
+    const QRegularExpression linkPattern(QStringLiteral("\\[\\[\\s*([^\\]]+?)\\s*\\]\\]"));
+    QSet<QString> outgoingSeen;
+    const QString ownBody = parseMarkdownFile(target->content, target->id, target->title,
+                                               target->relativePath).content;
+    auto outgoingMatches = linkPattern.globalMatch(ownBody);
+    while (outgoingMatches.hasNext()) {
+        const QString title = outgoingMatches.next().captured(1).simplified();
+        const QString folded = title.toCaseFolded();
+        if (title.isEmpty() || outgoingSeen.contains(folded))
+            continue;
+        outgoingSeen.insert(folded);
+        result.outgoing.append(title);
+        if (!knownTitles.contains(folded))
+            result.missing.append(title);
+    }
+
+    QSet<QString> backlinkSeen;
+    const QString targetTitle = target->title.simplified().toCaseFolded();
+    for (const Note &candidate : allNotes) {
+        if (candidate.id == noteId)
+            continue;
+        const QString body = parseMarkdownFile(candidate.content, candidate.id, candidate.title,
+                                               candidate.relativePath).content;
+        auto backlinkMatches = linkPattern.globalMatch(body);
+        bool linksToTarget = false;
+        while (backlinkMatches.hasNext()) {
+            if (backlinkMatches.next().captured(1).simplified().toCaseFolded() == targetTitle) {
+                linksToTarget = true;
+                break;
+            }
+        }
+        const QString foldedTitle = candidate.title.toCaseFolded();
+        if (linksToTarget && !backlinkSeen.contains(foldedTitle)) {
+            backlinkSeen.insert(foldedTitle);
+            result.backlinks.append(candidate.title);
+        }
+    }
+
+    result.outgoing.sort(Qt::CaseInsensitive);
+    result.backlinks.sort(Qt::CaseInsensitive);
+    result.missing.sort(Qt::CaseInsensitive);
+    return result;
 }
 
 bool NoteRepository::refresh(QString *error)
