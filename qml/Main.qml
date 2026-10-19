@@ -711,7 +711,9 @@ ApplicationWindow {
                         elide: Text.ElideRight
                     }
                     Label {
-                        text: noteController.hasSelection ? qsTr("%1 Wörter").arg(bodyEditor.text.trim().length ? bodyEditor.text.trim().split(/\\s+/).length : 0) : ""
+                        text: noteController.hasSelection
+                              ? qsTr("%1 Wörter · %2 Zeichen").arg(bodyEditor.text.trim().length ? bodyEditor.text.trim().split(/\\s+/).length : 0).arg(bodyEditor.text.length)
+                              : ""
                         color: window.secondaryTextColor
                     }
                 }
