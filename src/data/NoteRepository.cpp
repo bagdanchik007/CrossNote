@@ -669,6 +669,8 @@ bool NoteRepository::refresh(QString *error)
         relativePath.replace(QDir::separator(), u'/');
         if (relativePath.startsWith(QStringLiteral(".trash/"))
             || relativePath.contains(QStringLiteral("/.trash/"))
+            || relativePath.startsWith(QStringLiteral(".backups/"))
+            || relativePath.contains(QStringLiteral("/.backups/"))
             || relativePath.startsWith(QStringLiteral(".conflicts/"))
             || relativePath.contains(QStringLiteral("/.conflicts/")))
             continue;
@@ -790,6 +792,7 @@ void NoteRepository::updateWatcherPaths()
         const QString directory = directories.next();
         const QString relative = QDir(m_impl->vault).relativeFilePath(directory).replace(QDir::separator(), u'/');
         if (relative == QStringLiteral(".trash") || relative.startsWith(QStringLiteral(".trash/"))
+            || relative == QStringLiteral(".backups") || relative.startsWith(QStringLiteral(".backups/"))
             || relative == QStringLiteral(".conflicts") || relative.startsWith(QStringLiteral(".conflicts/")))
             continue;
         paths.append(directory);
@@ -801,6 +804,7 @@ void NoteRepository::updateWatcherPaths()
         const QString file = files.next();
         const QString relative = QDir(m_impl->vault).relativeFilePath(file).replace(QDir::separator(), u'/');
         if (!relative.startsWith(QStringLiteral(".trash/"))
+            && !relative.startsWith(QStringLiteral(".backups/"))
             && !relative.startsWith(QStringLiteral(".conflicts/")))
             paths.append(file);
     }
@@ -872,6 +876,39 @@ QString markdownForNote(const QString &id, const QString &title, const QString &
     metadataLines.append(QStringLiteral("tags: %1").arg(QString::fromUtf8(tagsJson)));
     return QStringLiteral("---\n%1\n---\n\n# %2\n\n%3\n")
         .arg(metadataLines.join(u'\n'), title.trimmed(), content.trimmed());
+}
+
+bool archiveMarkdownVersion(const QString &vault, const QString &noteId,
+                            const QByteArray &contents, QString *error)
+{
+    const QString relativeDirectory = QStringLiteral(".backups/%1").arg(noteId);
+    const QString absoluteDirectory = QDir(vault).filePath(relativeDirectory);
+    if (!QDir().mkpath(absoluteDirectory)) {
+        if (error) *error = QStringLiteral("Der Backup-Ordner für die Notiz kann nicht angelegt werden.");
+        return false;
+    }
+
+    const QString timestamp = QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd-HHmmss-zzz"));
+    QString fileName = timestamp + QStringLiteral(".md");
+    for (int suffix = 2; QFileInfo::exists(QDir(absoluteDirectory).filePath(fileName)); ++suffix)
+        fileName = QStringLiteral("%1-%2.md").arg(timestamp).arg(suffix);
+
+    QSaveFile backup(QDir(absoluteDirectory).filePath(fileName));
+    if (!backup.open(QIODevice::WriteOnly) || backup.write(contents) != contents.size() || !backup.commit()) {
+        if (error) *error = backup.errorString();
+        return false;
+    }
+
+    QDir directory(absoluteDirectory);
+    const QStringList versions = directory.entryList({QStringLiteral("*.md")}, QDir::Files, QDir::Name);
+    constexpr qsizetype MaximumBackups = 10;
+    for (qsizetype i = 0; i < versions.size() - MaximumBackups; ++i) {
+        if (!directory.remove(versions.at(i))) {
+            if (error) *error = QStringLiteral("Ein älteres Notiz-Backup konnte nicht entfernt werden.");
+            return false;
+        }
+    }
+    return true;
 }
 
 } // namespace
@@ -993,7 +1030,9 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
         return false;
 
     const QString cleanTitle = title.simplified().isEmpty() ? QStringLiteral("Unbenannte Notiz") : title.simplified();
+    bool externalConflict = false;
     if (!expectedHash.isEmpty() && current->contentHash != expectedHash) {
+        externalConflict = true;
         const QString conflictRoot = QDir(m_impl->vault).filePath(QStringLiteral(".conflicts"));
         if (!QDir().mkpath(conflictRoot)) {
             if (error) *error = QStringLiteral("Die externe Änderung kann nicht gesichert werden.");
@@ -1026,14 +1065,26 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
         }
     }
 
+    const QByteArray bytes = markdownForNote(id, cleanTitle, content, current->tags,
+                                              current->frontMatter).toUtf8();
+    if (!externalConflict && current->contentHash != QCryptographicHash::hash(bytes, QCryptographicHash::Sha256)) {
+        QFile previous(QDir(m_impl->vault).filePath(current->relativePath));
+        if (!previous.open(QIODevice::ReadOnly)) {
+            if (error) *error = previous.errorString();
+            return false;
+        }
+        const QByteArray previousBytes = previous.readAll();
+        previous.close();
+        if (!archiveMarkdownVersion(m_impl->vault, id, previousBytes, error))
+            return false;
+    }
+
     const QString targetAbsolute = QDir(m_impl->vault).filePath(targetPath);
     QSaveFile file(targetAbsolute);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         if (error) *error = file.errorString();
         return false;
     }
-    const QByteArray bytes = markdownForNote(id, cleanTitle, content, current->tags,
-                                              current->frontMatter).toUtf8();
     if (file.write(bytes) != bytes.size() || !file.commit()) {
         if (error) *error = file.errorString();
         return false;
