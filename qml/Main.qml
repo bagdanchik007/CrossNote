@@ -26,6 +26,11 @@ ApplicationWindow {
     title: qsTr("CrossNote")
     color: pageColor
 
+    onClosing: function(close) {
+        if (!window.saveEditor())
+            close.accepted = false
+    }
+
     function safeMarkdown(title, body) {
         var safeBody = body.replace(/!\[([^\]]*)\](?:\([^)]*\)|\[[^\]]*\])/g, "[$1]")
         safeBody = safeBody.replace(/<img\b[^>]*>/gi, "")
