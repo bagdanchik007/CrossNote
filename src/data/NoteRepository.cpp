@@ -1022,6 +1022,54 @@ std::optional<Note> NoteRepository::dailyNote(const QDate &date, QString *error)
     return createNote(title, error);
 }
 
+bool NoteRepository::exportNote(const QString &id, const QString &destination, QString *error) const
+{
+    const QString trimmedDestination = destination.trimmed();
+    if (trimmedDestination.isEmpty()) {
+        if (error) *error = QStringLiteral("Wähle einen Speicherort für den Markdown-Export aus.");
+        return false;
+    }
+
+    const auto selected = note(id, false, error);
+    if (!selected)
+        return false;
+    const QString sourcePath = safeAbsolutePath(m_impl->vault, selected->relativePath);
+    if (sourcePath.isEmpty()) {
+        if (error) *error = QStringLiteral("Die Notizdatei liegt außerhalb des geöffneten Vaults.");
+        return false;
+    }
+    const QString targetPath = QFileInfo(trimmedDestination).absoluteFilePath();
+    const QString canonicalSource = QFileInfo(sourcePath).canonicalFilePath();
+    const QString canonicalTarget = QFileInfo(targetPath).canonicalFilePath();
+    const QString comparableSource = QDir::fromNativeSeparators(
+        canonicalSource.isEmpty() ? QFileInfo(sourcePath).absoluteFilePath() : canonicalSource);
+    const QString comparableTarget = QDir::fromNativeSeparators(
+        canonicalTarget.isEmpty() ? targetPath : canonicalTarget);
+#ifdef Q_OS_WIN
+    if (comparableSource.compare(comparableTarget, Qt::CaseInsensitive) == 0) {
+#else
+    if (comparableSource == comparableTarget) {
+#endif
+        if (error) *error = QStringLiteral("Der Export darf die aktive Notizdatei nicht überschreiben.");
+        return false;
+    }
+
+    QFile source(sourcePath);
+    if (!source.open(QIODevice::ReadOnly)) {
+        if (error) *error = source.errorString();
+        return false;
+    }
+    const QByteArray contents = source.readAll();
+    source.close();
+
+    QSaveFile output(targetPath);
+    if (!output.open(QIODevice::WriteOnly) || output.write(contents) != contents.size() || !output.commit()) {
+        if (error) *error = output.errorString();
+        return false;
+    }
+    return true;
+}
+
 bool NoteRepository::saveNote(const QString &id, const QString &title,
                               const QString &content, const QByteArray &expectedHash, QString *error)
 {

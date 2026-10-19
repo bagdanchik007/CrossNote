@@ -48,6 +48,8 @@ public:
                                                  QString *error = nullptr);
     [[nodiscard]] std::optional<Note> dailyNote(const QDate &date = QDate::currentDate(),
                                                 QString *error = nullptr);
+    [[nodiscard]] bool exportNote(const QString &id, const QString &destination,
+                                  QString *error = nullptr) const;
     [[nodiscard]] bool saveNote(const QString &id, const QString &title,
                                 const QString &content, const QByteArray &expectedHash, QString *error = nullptr);
     [[nodiscard]] bool setFavorite(const QString &id, bool favorite,
