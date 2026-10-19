@@ -48,6 +48,7 @@ public:
     Q_INVOKABLE bool createNote(const QString &title = QString());
     Q_INVOKABLE bool createNoteWithTemplate(const QString &title, const QString &templateId);
     Q_INVOKABLE bool openDailyNote();
+    Q_INVOKABLE bool exportSelectedNote(const QString &destination);
     Q_INVOKABLE void openNote(const QString &id);
     Q_INVOKABLE void openNoteByTitle(const QString &title);
     Q_INVOKABLE bool saveCurrent(const QString &title, const QString &content);

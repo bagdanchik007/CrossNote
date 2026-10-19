@@ -132,6 +132,22 @@ bool NoteController::openDailyNote()
     return true;
 }
 
+bool NoteController::exportSelectedNote(const QString &destination)
+{
+    if (m_selectedId.isEmpty()) {
+        setError(tr("Wähle zuerst eine Notiz für den Export aus."));
+        return false;
+    }
+    QString error;
+    if (!m_repository.exportNote(m_selectedId, destination, &error)) {
+        setError(error);
+        return false;
+    }
+    clearError();
+    setStatus(tr("Markdown-Datei exportiert"));
+    return true;
+}
+
 void NoteController::openNote(const QString &id)
 {
     if (id == m_selectedId)
