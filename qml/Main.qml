@@ -57,6 +57,17 @@ ApplicationWindow {
         }
     }
 
+    FileDialog {
+        id: exportDialog
+        title: qsTr("Markdown-Notiz exportieren")
+        fileMode: FileDialog.SaveFile
+        nameFilters: [qsTr("Markdown-Dateien (*.md)"), qsTr("Alle Dateien (*)")]
+        onAccepted: {
+            if (window.saveEditor())
+                noteController.exportSelectedNote(selectedFile.toLocalFile())
+        }
+    }
+
     Dialog {
         id: deleteDialog
         title: qsTr("Notiz in den Papierkorb verschieben?")
@@ -519,6 +530,11 @@ ApplicationWindow {
                             if (!saveEditor()) return
                             window.previewMode = !window.previewMode
                         }
+                    }
+                    Button {
+                        text: qsTr("Exportieren")
+                        enabled: noteController.hasSelection
+                        onClicked: exportDialog.open()
                     }
                     Button {
                         text: qsTr("Löschen")
