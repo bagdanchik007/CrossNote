@@ -14,6 +14,7 @@ class NoteCreationTest final : public QObject
 private slots:
     void createsSearchableMarkdownNote();
     void createsPortableUniqueFilenames();
+    void indexesMarkdownAddedAfterVaultOpen();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -63,6 +64,40 @@ void NoteCreationTest::createsPortableUniqueFilenames()
     QCOMPARE(first->relativePath, QStringLiteral("Plan.md"));
     QCOMPARE(second->relativePath, QStringLiteral("plan-2.md"));
     QCOMPARE(reserved->relativePath, QStringLiteral("_CON.md"));
+}
+
+void NoteCreationTest::indexesMarkdownAddedAfterVaultOpen()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+
+    QFile externalNote(vault.filePath(QStringLiteral("Imported.md")));
+    QVERIFY(externalNote.open(QIODevice::WriteOnly | QIODevice::Text));
+    const QByteArray markdown = R"(---
+id: 62442507-82f5-4b83-9bf9-f260a8bf22b4
+tags: ["external"]
+---
+
+# Imported
+
+Borrowed knowledge.
+)";
+    QCOMPARE(externalNote.write(markdown), qint64(markdown.size()));
+    externalNote.close();
+
+    QVERIFY2(repository.refresh(&error), qPrintable(error));
+    const auto id = repository.noteIdForTitle(QStringLiteral("Imported"), &error);
+    QVERIFY2(id.has_value(), qPrintable(error));
+    const auto imported = repository.note(*id, true, &error);
+    QVERIFY2(imported.has_value(), qPrintable(error));
+    QVERIFY(imported->content.contains(QStringLiteral("Borrowed knowledge")));
+    QVERIFY(imported->tags.contains(QStringLiteral("external")));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
