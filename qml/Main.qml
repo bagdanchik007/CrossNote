@@ -258,6 +258,15 @@ ApplicationWindow {
                     }
                     Button {
                         Layout.fillWidth: true
+                        text: qsTr("Tagesnotiz")
+                        Accessible.name: qsTr("Heutige Tagesnotiz öffnen")
+                        onClicked: {
+                            if (window.saveEditor() && noteController.openDailyNote())
+                                searchField.clear()
+                        }
+                    }
+                    Button {
+                        Layout.fillWidth: true
                         text: qsTr("Favoriten")
                         checkable: true
                         checked: window.currentSection === "favorites"
