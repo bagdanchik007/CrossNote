@@ -46,6 +46,7 @@ public:
     Q_INVOKABLE void initialize();
     Q_INVOKABLE void setVaultPath(const QString &path);
     Q_INVOKABLE bool createNote(const QString &title = QString());
+    Q_INVOKABLE bool openDailyNote();
     Q_INVOKABLE void openNote(const QString &id);
     Q_INVOKABLE void openNoteByTitle(const QString &title);
     Q_INVOKABLE bool saveCurrent(const QString &title, const QString &content);

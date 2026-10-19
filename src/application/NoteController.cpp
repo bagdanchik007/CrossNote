@@ -87,6 +87,23 @@ bool NoteController::createNote(const QString &title)
     return true;
 }
 
+bool NoteController::openDailyNote()
+{
+    QString error;
+    const auto daily = m_repository.dailyNote(QDate::currentDate(), &error);
+    if (!daily) {
+        setError(error);
+        return false;
+    }
+
+    setSection(QStringLiteral("notes"));
+    setTagFilter(QString());
+    setSearchQuery(QString());
+    openNote(daily->id);
+    setStatus(tr("Tagesnotiz geöffnet"));
+    return true;
+}
+
 void NoteController::openNote(const QString &id)
 {
     if (id == m_selectedId)
