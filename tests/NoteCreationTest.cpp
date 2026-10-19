@@ -17,6 +17,7 @@ private slots:
     void indexesMarkdownAddedAfterVaultOpen();
     void keepsFullTextIndexInSyncWithEditsAndTags();
     void removesAndRestoresNotesWithTheirSearchEntries();
+    void analyzesWikiLinksAndBacklinks();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -164,6 +165,37 @@ void NoteCreationTest::removesAndRestoresNotesWithTheirSearchEntries()
     QVERIFY2(repository.searchIds(QStringLiteral("Archive"), &ids, &error), qPrintable(error));
     QVERIFY(ids.contains(created->id));
     QCOMPARE(repository.trashedNotes(&error).size(), 0);
+}
+
+void NoteCreationTest::analyzesWikiLinksAndBacklinks()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto target = repository.createNote(QStringLiteral("Architecture"), &error);
+    QVERIFY2(target.has_value(), qPrintable(error));
+    const auto source = repository.createNote(QStringLiteral("Design notes"), &error);
+    QVERIFY2(source.has_value(), qPrintable(error));
+
+    auto current = repository.note(source->id, true, &error);
+    QVERIFY2(current.has_value(), qPrintable(error));
+    QVERIFY2(repository.saveNote(source->id, source->title,
+                                 QStringLiteral("See [[Architecture]], [[Future]] and [[future]]."),
+                                 current->contentHash, &error), qPrintable(error));
+
+    const auto sourceLinks = repository.analyzeLinks(source->id, &error);
+    QVERIFY2(error.isEmpty(), qPrintable(error));
+    QCOMPARE(sourceLinks.outgoing, QStringList({QStringLiteral("Architecture"), QStringLiteral("Future")}));
+    QCOMPARE(sourceLinks.missing, QStringList({QStringLiteral("Future")}));
+
+    const auto targetLinks = repository.analyzeLinks(target->id, &error);
+    QVERIFY2(error.isEmpty(), qPrintable(error));
+    QCOMPARE(targetLinks.backlinks, QStringList({QStringLiteral("Design notes")}));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
