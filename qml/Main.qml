@@ -577,6 +577,56 @@ ApplicationWindow {
                     }
                 }
 
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    visible: noteController.hasSelection
+                             && (noteController.selectedLinks.length > 0
+                                 || noteController.selectedBacklinks.length > 0
+                                 || noteController.selectedMissingLinks.length > 0)
+
+                    Label {
+                        visible: noteController.selectedLinks.length > 0
+                        text: qsTr("Verlinkt:")
+                        color: "#687181"
+                    }
+                    Repeater {
+                        model: noteController.selectedLinks
+                        delegate: Button {
+                            required property string modelData
+                            text: modelData
+                            enabled: !noteController.selectedMissingLinks.includes(modelData)
+                            onClicked: noteController.openNoteByTitle(modelData)
+                        }
+                    }
+                    Label {
+                        visible: noteController.selectedBacklinks.length > 0
+                        text: qsTr("Rückverweise:")
+                        color: "#687181"
+                    }
+                    Repeater {
+                        model: noteController.selectedBacklinks
+                        delegate: Button {
+                            required property string modelData
+                            text: modelData
+                            onClicked: noteController.openNoteByTitle(modelData)
+                        }
+                    }
+                    Label {
+                        visible: noteController.selectedMissingLinks.length > 0
+                        text: qsTr("Fehlende Ziele:")
+                        color: "#b42318"
+                    }
+                    Repeater {
+                        model: noteController.selectedMissingLinks
+                        delegate: Label {
+                            required property string modelData
+                            text: modelData
+                            color: "#b42318"
+                        }
+                    }
+                }
+
                 RowLayout {
                     Layout.fillWidth: true
                     Label {
