@@ -37,7 +37,7 @@ ApplicationWindow {
         createNoteError = ""
         if (!saveEditor())
             return
-        if (noteController.createNote(createTitleField.text)) {
+        if (noteController.createNoteWithTemplate(createTitleField.text, templatePicker.currentValue)) {
             searchField.clear()
             createNoteDialog.close()
         } else {
@@ -86,6 +86,7 @@ ApplicationWindow {
         onOpened: {
             createNoteError = ""
             createTitleField.text = qsTr("Neue Notiz")
+            templatePicker.currentIndex = 0
             Qt.callLater(function() {
                 createTitleField.forceActiveFocus()
                 createTitleField.selectAll()
@@ -107,6 +108,19 @@ ApplicationWindow {
                 placeholderText: qsTr("Notiztitel")
                 Accessible.name: qsTr("Titel der neuen Notiz")
                 onAccepted: window.confirmCreateNote()
+            }
+            ComboBox {
+                id: templatePicker
+                Layout.fillWidth: true
+                textRole: "label"
+                valueRole: "id"
+                Accessible.name: qsTr("Vorlage für die neue Notiz")
+                model: [
+                    { id: "blank", label: qsTr("Leere Notiz") },
+                    { id: "meeting", label: qsTr("Besprechungsnotiz") },
+                    { id: "project", label: qsTr("Projektübersicht") },
+                    { id: "daily", label: qsTr("Tagesnotiz") }
+                ]
             }
             Label {
                 Layout.fillWidth: true
