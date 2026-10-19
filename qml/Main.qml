@@ -176,6 +176,21 @@ ApplicationWindow {
         onActivated: createNoteDialog.open()
     }
 
+    Shortcut {
+        sequence: StandardKey.Save
+        enabled: !createNoteDialog.visible && !deleteDialog.visible
+        onActivated: window.saveEditor()
+    }
+
+    Shortcut {
+        sequence: StandardKey.Find
+        enabled: !createNoteDialog.visible && !deleteDialog.visible
+        onActivated: {
+            searchField.forceActiveFocus()
+            searchField.selectAll()
+        }
+    }
+
     Connections {
         target: noteController
         function onCurrentNoteChanged() {
