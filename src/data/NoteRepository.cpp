@@ -960,6 +960,24 @@ std::optional<Note> NoteRepository::createNote(const QString &title, QString *er
     emit notesChanged();
     return created;
 }
+
+std::optional<Note> NoteRepository::dailyNote(const QDate &date, QString *error)
+{
+    if (error)
+        error->clear();
+    if (!date.isValid()) {
+        if (error) *error = QStringLiteral("Das Datum für die Tagesnotiz ist ungültig.");
+        return std::nullopt;
+    }
+
+    const QString title = date.toString(Qt::ISODate);
+    if (const auto existingId = noteIdForTitle(title, error))
+        return note(*existingId, true, error);
+    if (error && !error->isEmpty())
+        return std::nullopt;
+    return createNote(title, error);
+}
+
 bool NoteRepository::saveNote(const QString &id, const QString &title,
                               const QString &content, const QByteArray &expectedHash, QString *error)
 {
