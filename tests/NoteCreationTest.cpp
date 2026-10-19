@@ -16,6 +16,7 @@ private slots:
     void createsPortableUniqueFilenames();
     void indexesMarkdownAddedAfterVaultOpen();
     void keepsFullTextIndexInSyncWithEditsAndTags();
+    void removesAndRestoresNotesWithTheirSearchEntries();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -135,6 +136,34 @@ void NoteCreationTest::keepsFullTextIndexInSyncWithEditsAndTags()
     QVERIFY(ids.contains(created->id));
     QVERIFY2(repository.searchIds(QStringLiteral("roadmap"), &ids, &error), qPrintable(error));
     QVERIFY(ids.contains(created->id));
+}
+
+void NoteCreationTest::removesAndRestoresNotesWithTheirSearchEntries()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Archive entry"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+
+    QStringList ids;
+    QVERIFY2(repository.searchIds(QStringLiteral("Archive"), &ids, &error), qPrintable(error));
+    QVERIFY(ids.contains(created->id));
+
+    QVERIFY2(repository.moveToTrash(created->id, &error), qPrintable(error));
+    QVERIFY2(repository.searchIds(QStringLiteral("Archive"), &ids, &error), qPrintable(error));
+    QVERIFY(!ids.contains(created->id));
+    QCOMPARE(repository.trashedNotes(&error).size(), 1);
+
+    QVERIFY2(repository.restoreFromTrash(created->id, &error), qPrintable(error));
+    QVERIFY2(repository.searchIds(QStringLiteral("Archive"), &ids, &error), qPrintable(error));
+    QVERIFY(ids.contains(created->id));
+    QCOMPARE(repository.trashedNotes(&error).size(), 0);
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
