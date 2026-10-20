@@ -338,6 +338,17 @@ ApplicationWindow {
                     }
                     Button {
                         Layout.fillWidth: true
+                        text: qsTr("Archiv")
+                        checkable: true
+                        checked: window.currentSection === "archive"
+                        onClicked: {
+                            if (!saveEditor()) return
+                            window.currentSection = "archive"
+                            noteController.setSection("archive")
+                        }
+                    }
+                    Button {
+                        Layout.fillWidth: true
                         text: qsTr("Kürzlich geöffnet")
                         checkable: true
                         checked: window.currentSection === "recent"
@@ -403,7 +414,9 @@ ApplicationWindow {
                                     ? qsTr("Kürzlich geöffnet")
                                     : window.currentSection === "edited"
                                       ? qsTr("Kürzlich bearbeitet")
-                                      : window.currentSection === "trash" ? qsTr("Papierkorb") : qsTr("Alle Notizen")
+                                      : window.currentSection === "archive"
+                                        ? qsTr("Archiv")
+                                        : window.currentSection === "trash" ? qsTr("Papierkorb") : qsTr("Alle Notizen")
                             color: window.primaryTextColor
                             font.pixelSize: 19
                             font.bold: true
@@ -595,6 +608,12 @@ ApplicationWindow {
                         text: qsTr("Löschen")
                         enabled: noteController.hasSelection
                         onClicked: deleteDialog.open()
+                    }
+                    Button {
+                        visible: noteController.hasSelection && window.currentSection !== "trash"
+                        text: window.currentSection === "archive" ? qsTr("Aus Archiv holen") : qsTr("Archivieren")
+                        onClicked: noteController.setArchived(noteController.selectedId,
+                                                              window.currentSection !== "archive")
                     }
                 }
 
