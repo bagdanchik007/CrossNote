@@ -123,10 +123,14 @@ CrossNote ist eine Notiz-App für Windows, Linux, Android und iOS. Markdown-Date
 
 **Ergebnis:** Öffentliche Projektseite mit Informationen und Hilfen.
 
-- Projektseite, Funktionsübersicht und Plattformstatus erstellen
+- Deutsche und englische statische Projektseite mit Funktionsübersicht und Plattformstatus als erster Entwurf vorhanden
+- Datenschutzinformationen zum aktuellen Prototyp dokumentieren
+- Website-Preview lokal über `python -m http.server 8000 --directory website` starten
+- Veröffentlichen erst nach expliziter Wahl eines Hosting-Ziels einrichten
 - Downloads, Installationsanleitungen und Benutzerhandbuch veröffentlichen
 - Versionshinweise, bekannte Einschränkungen und Kontaktweg ergänzen
-- Mobilfreundliches Layout und Veröffentlichungsprozess einrichten
+- Mobilfreundliches Layout und barrierearme Grundstruktur der ersten Seiten vorhanden
+- Veröffentlichungsprozess und öffentliche Release-Inhalte vervollständigen
 
 ## Phase 12 – Online-Sync-Dienst
 
