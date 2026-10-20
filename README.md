@@ -36,6 +36,8 @@ Danach die erzeugte Anwendung im Build-Verzeichnis starten. Für Linux gelten di
 
 ## Dokumentation
 
+- [Projektwebsite lokal ansehen](website/README.md)
+- [CrossNote-Website](website/index.html)
 - [Roadmap](docs/ROADMAP.md)
 - [Technische Übersicht](docs/ARCHITECTURE.md)
 - [Implementierungsvertrag](docs/IMPLEMENTATION.md)
