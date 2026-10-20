@@ -349,6 +349,17 @@ ApplicationWindow {
                     }
                     Button {
                         Layout.fillWidth: true
+                        text: qsTr("Kürzlich bearbeitet")
+                        checkable: true
+                        checked: window.currentSection === "edited"
+                        onClicked: {
+                            if (!saveEditor()) return
+                            window.currentSection = "edited"
+                            noteController.setSection("edited")
+                        }
+                    }
+                    Button {
+                        Layout.fillWidth: true
                         text: qsTr("Papierkorb")
                         checkable: true
                         checked: window.currentSection === "trash"
@@ -390,7 +401,9 @@ ApplicationWindow {
                                   ? qsTr("Favoriten")
                                   : window.currentSection === "recent"
                                     ? qsTr("Kürzlich geöffnet")
-                                    : window.currentSection === "trash" ? qsTr("Papierkorb") : qsTr("Alle Notizen")
+                                    : window.currentSection === "edited"
+                                      ? qsTr("Kürzlich bearbeitet")
+                                      : window.currentSection === "trash" ? qsTr("Papierkorb") : qsTr("Alle Notizen")
                             color: window.primaryTextColor
                             font.pixelSize: 19
                             font.bold: true
