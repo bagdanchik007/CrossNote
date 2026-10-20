@@ -312,7 +312,7 @@ public:
         QVector<Note> result;
         QSqlQuery query(database);
         query.prepare(QStringLiteral("SELECT id, title, relative_path, created_at, updated_at, "
-                                     "last_opened_at, favorite, tags FROM notes ORDER BY updated_at DESC"));
+                                     "last_opened_at, favorite, tags, archived FROM notes ORDER BY updated_at DESC"));
         if (!query.exec()) {
             if (error) *error = sqlError(query);
             return result;
@@ -328,6 +328,7 @@ public:
                 item.lastOpenedAt = QDateTime::fromMSecsSinceEpoch(query.value(5).toLongLong(), Qt::UTC);
             item.favorite = query.value(6).toBool();
             item.tags = parseTags(query.value(7).toString());
+            item.archived = query.value(8).toBool();
             const QString absolute = safeAbsolutePath(vault, item.relativePath);
             if (absolute.isEmpty())
                 continue;
@@ -539,7 +540,7 @@ std::optional<Note> NoteRepository::note(const QString &id, bool includeContent,
 {
     QSqlQuery query(m_impl->database);
     query.prepare(QStringLiteral("SELECT title, relative_path, created_at, updated_at, "
-                                 "last_opened_at, favorite, tags FROM notes WHERE id = ?"));
+                                 "last_opened_at, favorite, tags, archived FROM notes WHERE id = ?"));
     query.addBindValue(id);
     if (!query.exec()) {
         if (error) *error = sqlError(query);
@@ -558,6 +559,7 @@ std::optional<Note> NoteRepository::note(const QString &id, bool includeContent,
         result.lastOpenedAt = QDateTime::fromMSecsSinceEpoch(query.value(4).toLongLong(), Qt::UTC);
     result.favorite = query.value(5).toBool();
     result.tags = parseTags(query.value(6).toString());
+    result.archived = query.value(7).toBool();
 
     if (includeContent) {
         const QString absolute = safeAbsolutePath(m_impl->vault, result.relativePath);
