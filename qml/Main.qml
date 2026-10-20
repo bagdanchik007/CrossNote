@@ -530,7 +530,12 @@ ApplicationWindow {
                             visible: noteList.count === 0
                             Label {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: window.currentSection === "trash" ? qsTr("Papierkorb ist leer") : (searchField.text.length ? qsTr("Keine Treffer") : qsTr("Noch keine Notizen"))
+                                text: searchField.text.length
+                                      ? qsTr("Keine Treffer")
+                                      : window.currentSection === "trash" ? qsTr("Papierkorb ist leer")
+                                      : window.currentSection === "archive" ? qsTr("Archiv ist leer")
+                                      : window.currentSection === "edited" ? qsTr("Nichts in den letzten sieben Tagen bearbeitet")
+                                      : qsTr("Noch keine Notizen")
                                 color: "#3a414d"
                                 font.pixelSize: 15
                                 font.bold: true
@@ -540,6 +545,8 @@ ApplicationWindow {
                                 width: parent.width
                                 text: searchField.text.length
                                       ? qsTr("Versuche einen anderen Suchbegriff.")
+                                      : window.currentSection === "archive" ? qsTr("Archivierte Notizen erscheinen nur in diesem Bereich.")
+                                      : window.currentSection === "edited" ? qsTr("Hier erscheinen Notizen mit Änderungen aus den letzten sieben Tagen.")
                                       : qsTr("Erstelle deine erste Notiz mit der Schaltfläche oben.")
                                 color: window.mutedTextColor
                                 font.pixelSize: 13
