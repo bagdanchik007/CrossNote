@@ -4,6 +4,7 @@
 
 - Markdown-Dateien im gewählten Vault enthalten Titel und Notiztext.
 - SQLite ist ein lokaler, wiederherstellbarer Index. Der Index wird außerhalb des Vaults im anwendungsspezifischen Datenordner pro Vault gespeichert.
+- Archivstatus ist lokale Metadateninformation im SQLite-Index; archivierte Markdown-Dateien bleiben unverändert und portabel im Vault.
 - Jede Datei erhält eine stabile UUID in YAML-Frontmatter. Ein erneuter Scan darf vorhandene IDs nicht verändern.
 - Dateischreibvorgänge erfolgen atomar über `QSaveFile`.
 - Löschen verschiebt die Datei zunächst in den `.trash`-Ordner des Vaults.
