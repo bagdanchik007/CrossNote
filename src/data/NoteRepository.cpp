@@ -21,7 +21,7 @@
 namespace CrossNote {
 namespace {
 
-constexpr int CurrentSchemaVersion = 2;
+constexpr int CurrentSchemaVersion = 3;
 
 QString safeAbsolutePath(const QString &vault, const QString &relativePath)
 {
@@ -244,6 +244,23 @@ public:
                 const QString message = updateVersion.lastError().text().isEmpty()
                     ? database.lastError().text() : sqlError(updateVersion);
                 if (error) *error = message;
+                return false;
+            }
+            updateVersion.finish();
+            version = 2;
+        }
+
+        if (version < 3) {
+            QSqlQuery addArchivedColumn(database);
+            if (!addArchivedColumn.exec(QStringLiteral(
+                    "ALTER TABLE notes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"))) {
+                if (error) *error = sqlError(addArchivedColumn);
+                return false;
+            }
+            addArchivedColumn.finish();
+            QSqlQuery updateVersion(database);
+            if (!updateVersion.exec(QStringLiteral("INSERT INTO schema_version (version) VALUES (3)"))) {
+                if (error) *error = sqlError(updateVersion);
                 return false;
             }
             updateVersion.finish();
