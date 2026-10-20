@@ -12,7 +12,7 @@ python -m http.server 8000 --directory website
 
 Then open <http://localhost:8000>. The German page is the default; use the `EN` link for the English page.
 
-Relative links from the site point to the repository README and project documentation, so keep the `website/` directory in the repository when hosting it as a project site.
+Project and documentation links point to the repository's public GitHub pages and therefore work when only the `website/` directory is hosted as a static site.
 
 ## Publishing
 
