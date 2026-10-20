@@ -20,6 +20,7 @@ struct Note
     QDateTime updatedAt;
     QDateTime lastOpenedAt;
     bool favorite = false;
+    bool archived = false;
 };
 
 } // namespace CrossNote
