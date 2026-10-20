@@ -65,12 +65,14 @@ void NoteListModel::setNotes(QVector<Note> notes)
     m_visibleRows.clear();
     for (qsizetype i = 0; i < m_notes.size(); ++i) {
         const Note &note = m_notes.at(i);
-        const bool inSection = m_section == QStringLiteral("favorites")
-            ? note.favorite
-            : m_section == QStringLiteral("recent") ? note.lastOpenedAt.isValid()
-            : m_section == QStringLiteral("edited")
-                ? note.updatedAt >= QDateTime::currentDateTimeUtc().addDays(-7)
-                : true;
+        const bool inSection = m_section == QStringLiteral("archive")
+            ? note.archived
+            : !note.archived && (m_section == QStringLiteral("favorites")
+                ? note.favorite
+                : m_section == QStringLiteral("recent") ? note.lastOpenedAt.isValid()
+                : m_section == QStringLiteral("edited")
+                    ? note.updatedAt >= QDateTime::currentDateTimeUtc().addDays(-7)
+                    : true);
         const QString searchable = note.title + u' ' + note.content + u' '
             + note.tags.join(u' ');
         const bool matchesQuery = m_searchResultsActive
@@ -120,7 +122,7 @@ void NoteListModel::setSection(const QString &section)
     if (normalized != QStringLiteral("notes")
         && normalized != QStringLiteral("favorites")
         && normalized != QStringLiteral("recent") && normalized != QStringLiteral("edited")
-        && normalized != QStringLiteral("trash")) {
+        && normalized != QStringLiteral("trash") && normalized != QStringLiteral("archive")) {
         return;
     }
     if (m_section == normalized)
