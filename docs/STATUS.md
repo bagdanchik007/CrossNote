@@ -28,8 +28,10 @@
 - Zuletzt geöffnete Notizen werden anhand ihres Öffnungszeitpunkts sortiert
 - „Kürzlich bearbeitet“ zeigt Notizen mit Änderungen innerhalb der letzten sieben Tage
 - Änderungsdatum jeder Notiz wird direkt in der Notizliste angezeigt
+- Archivstatus wird mit SQLite-Schema 3 pro Gerät verwaltet; Markdown-Dateien bleiben dabei unverändert
 - Qt-Test/CTest deckt Notizerstellung, Import, Suche, Tags, Papierkorb, Links, Tagesnotizen, Vorlagen, Backups und Export ab
 - GitHub Actions führt die vorhandene CTest-Suite auf Linux aus
+- Deutsche und englische, responsive statische Projektwebsite unter `website/`
 - QML-Startfehler werden in `%TEMP%/CrossNote-startup.log` protokolliert
 - Windows-Debug-Build mit MSYS2 UCRT64 konfiguriert und erfolgreich kompiliert
 
