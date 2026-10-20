@@ -54,6 +54,8 @@ public:
                                 const QString &content, const QByteArray &expectedHash, QString *error = nullptr);
     [[nodiscard]] bool setFavorite(const QString &id, bool favorite,
                                    QString *error = nullptr);
+    [[nodiscard]] bool setArchived(const QString &id, bool archived,
+                                   QString *error = nullptr);
     [[nodiscard]] bool setTags(const QString &id, const QStringList &tags,
                                QString *error = nullptr);
     [[nodiscard]] bool markOpened(const QString &id, QString *error = nullptr);
