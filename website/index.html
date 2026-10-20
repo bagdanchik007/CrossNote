@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fc">
+  <meta name="description" content="CrossNote ist eine plattformübergreifende Notiz-App mit Markdown-Dateien und lokalem Suchindex.">
+  <title>CrossNote – Dein Wissen, deine Dateien</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Zum Inhalt springen</a>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="CrossNote Startseite">
+      <span class="brand-mark" aria-hidden="true">C</span>
+      <span>CrossNote</span>
+    </a>
+    <nav aria-label="Hauptnavigation">
+      <a href="#funktionen">Funktionen</a>
+      <a href="#plattformen">Plattformen</a>
+      <a href="../docs/ROADMAP.md">Roadmap</a>
+      <a class="nav-cta" href="../README.md">Projekt ansehen</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> In aktiver Entwicklung</p>
+      <h1 id="hero-title">Dein Wissen.<br><span>Deine Dateien.</span></h1>
+      <p class="hero-copy">CrossNote verbindet einen klaren Notiz-Editor mit portablen Markdown-Dateien. Deine Notizen bleiben in deinem Ordner und lassen sich auch ohne CrossNote lesen.</p>
+      <div class="hero-actions">
+        <a class="button primary" href="#funktionen">Funktionen entdecken</a>
+        <a class="button secondary" href="../docs/ROADMAP.md">Roadmap lesen</a>
+      </div>
+      <div class="hero-note" role="note">
+        <strong>Früher Prototyp</strong>
+        <span>Die Desktop-App wird derzeit entwickelt. Es gibt noch keine öffentlichen Installationspakete oder einen Online-Sync-Dienst.</span>
+      </div>
+    </section>
+
+    <section class="section" id="funktionen" aria-labelledby="features-title">
+      <p class="eyebrow">Ein lokaler Kern</p>
+      <h2 id="features-title">Notieren ohne Dateiformat-Falle</h2>
+      <p class="section-intro">Notiztexte liegen als Markdown in deinem Vault. SQLite hält einen lokalen, wiederherstellbaren Suchindex und gerätespezifische Metadaten bereit.</p>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <span class="feature-icon" aria-hidden="true">01</span>
+          <h3>Markdown gehört dir</h3>
+          <p>Notizen sind normale UTF-8-Dateien. Öffne sie mit CrossNote oder einem anderen Texteditor.</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon" aria-hidden="true">⌕</span>
+          <h3>Finde Verbindungen</h3>
+          <p>Volltextsuche, Tags, Favoriten, Wiki-Links und Rückverweise helfen beim Wiederfinden.</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon" aria-hidden="true">↻</span>
+          <h3>Änderungen geschützt</h3>
+          <p>Automatisches Speichern, lokale Versionssicherungen und Konfliktkopien schützen deine Arbeit.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="platform-section" id="plattformen" aria-labelledby="platform-title">
+      <div>
+        <p class="eyebrow">Schritt für Schritt</p>
+        <h2 id="platform-title">Für deine Geräte geplant</h2>
+        <p>Wir bauen zuerst einen zuverlässigen lokalen Desktop-Kern. Mobile Apps und Online-Synchronisierung folgen später.</p>
+      </div>
+      <ul class="platform-list">
+        <li><span>Windows</span><span class="badge progress">Entwicklung</span></li>
+        <li><span>Linux</span><span class="badge planned">Geplant</span></li>
+        <li><span>Android</span><span class="badge planned">Geplant</span></li>
+        <li><span>iOS</span><span class="badge planned">Apple-Buildzugang nötig</span></li>
+        <li><span>Online-Sync</span><span class="badge planned">Geplant</span></li>
+      </ul>
+    </section>
+
+    <section class="closing" aria-labelledby="closing-title">
+      <p class="eyebrow">Offen entwickelt</p>
+      <h2 id="closing-title">Sieh dir den aktuellen Stand an.</h2>
+      <p>Die Roadmap dokumentiert, was bereits funktioniert und welche Schritte noch bevorstehen.</p>
+      <a class="button primary" href="../docs/STATUS.md">Projektstatus öffnen</a>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">C</span><span>CrossNote</span></a>
+    <p>Eine unabhängige Notiz-App in Entwicklung.</p>
+    <a href="../README.md">Dokumentation</a>
+  </footer>
+</body>
+</html>
