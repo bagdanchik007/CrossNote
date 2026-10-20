@@ -67,7 +67,10 @@ void NoteListModel::setNotes(QVector<Note> notes)
         const Note &note = m_notes.at(i);
         const bool inSection = m_section == QStringLiteral("favorites")
             ? note.favorite
-            : m_section == QStringLiteral("recent") ? note.lastOpenedAt.isValid() : true;
+            : m_section == QStringLiteral("recent") ? note.lastOpenedAt.isValid()
+            : m_section == QStringLiteral("edited")
+                ? note.updatedAt >= QDateTime::currentDateTimeUtc().addDays(-7)
+                : true;
         const QString searchable = note.title + u' ' + note.content + u' '
             + note.tags.join(u' ');
         const bool matchesQuery = m_searchResultsActive
@@ -116,7 +119,8 @@ void NoteListModel::setSection(const QString &section)
     const QString normalized = section.trimmed().toLower();
     if (normalized != QStringLiteral("notes")
         && normalized != QStringLiteral("favorites")
-        && normalized != QStringLiteral("recent") && normalized != QStringLiteral("trash")) {
+        && normalized != QStringLiteral("recent") && normalized != QStringLiteral("edited")
+        && normalized != QStringLiteral("trash")) {
         return;
     }
     if (m_section == normalized)
