@@ -56,6 +56,7 @@ public:
     Q_INVOKABLE bool saveCurrent(const QString &title, const QString &content);
     Q_INVOKABLE void deleteCurrent();
     Q_INVOKABLE void setFavorite(const QString &id, bool favorite);
+    Q_INVOKABLE void setArchived(const QString &id, bool archived);
     Q_INVOKABLE void setTags(const QString &id, const QStringList &tags);
     Q_INVOKABLE void setSearchQuery(const QString &query);
     Q_INVOKABLE void setTagFilter(const QString &tag);
