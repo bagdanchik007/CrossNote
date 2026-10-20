@@ -246,6 +246,17 @@ void NoteController::setFavorite(const QString &id, bool favorite)
     setStatus(favorite ? tr("Zu Favoriten hinzugefügt") : tr("Aus Favoriten entfernt"));
 }
 
+void NoteController::setArchived(const QString &id, bool archived)
+{
+    QString error;
+    if (!m_repository.setArchived(id, archived, &error)) {
+        setError(error);
+        return;
+    }
+    clearError();
+    setStatus(archived ? tr("Notiz archiviert") : tr("Notiz aus dem Archiv geholt"));
+}
+
 void NoteController::setTags(const QString &id, const QStringList &tags)
 {
     QString error;
