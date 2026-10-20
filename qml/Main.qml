@@ -449,6 +449,7 @@ ApplicationWindow {
                             required property string noteId
                             required property string title
                             required property string preview
+                            required property var updatedAt
                             required property bool favorite
                             required property var tags
                             width: noteList.width
@@ -479,6 +480,12 @@ ApplicationWindow {
                                         elide: Text.ElideRight
                                         color: window.mutedTextColor
                                         font.pixelSize: 12
+                                    }
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: Qt.formatDateTime(updatedAt, "dd.MM.yyyy HH:mm")
+                                        color: window.mutedTextColor
+                                        font.pixelSize: 10
                                     }
                                     Flow {
                                         Layout.fillWidth: true
