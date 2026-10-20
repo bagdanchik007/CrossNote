@@ -1202,6 +1202,24 @@ bool NoteRepository::setFavorite(const QString &id, bool favorite, QString *erro
     return true;
 }
 
+bool NoteRepository::setArchived(const QString &id, bool archived, QString *error)
+{
+    QSqlQuery query(m_impl->database);
+    query.prepare(QStringLiteral("UPDATE notes SET archived = ? WHERE id = ?"));
+    query.addBindValue(archived);
+    query.addBindValue(id);
+    if (!query.exec()) {
+        if (error) *error = sqlError(query);
+        return false;
+    }
+    if (query.numRowsAffected() != 1) {
+        if (error) *error = QStringLiteral("Die Notiz wurde nicht gefunden.");
+        return false;
+    }
+    emit notesChanged();
+    return true;
+}
+
 bool NoteRepository::setTags(const QString &id, const QStringList &tags, QString *error)
 {
     const auto current = note(id, true, error);
