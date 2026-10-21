@@ -22,6 +22,10 @@ private slots:
     void createsNotesWithPrefilledMarkdown();
     void archivesPreviousVersionsOutsideTheActiveVaultIndex();
     void exportsMarkdownWithoutChangingTheVault();
+    void searchTreatsQuerySyntaxAsPlainText();
+    void rejectsOverlongTitlesOnSave();
+    void tagUpdatesPersistToMarkdown();
+    void refreshRejectsDuplicateStableIds();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -302,6 +306,89 @@ void NoteCreationTest::exportsMarkdownWithoutChangingTheVault()
     QCOMPARE(exported.readAll(), original);
     QVERIFY(!repository.exportNote(created->id, sourcePath, &error));
     QCOMPARE(repository.notes(&error).size(), 1);
+}
+
+void NoteCreationTest::searchTreatsQuerySyntaxAsPlainText()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Searchable"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+
+    QStringList ids;
+    QVERIFY2(repository.searchIds(QStringLiteral("&&& : !?"), &ids, &error), qPrintable(error));
+    QVERIFY(ids.isEmpty());
+    QVERIFY2(repository.searchIds(QStringLiteral("Searchable OR missing"), &ids, &error), qPrintable(error));
+    QVERIFY(ids.isEmpty());
+}
+
+void NoteCreationTest::rejectsOverlongTitlesOnSave()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Bounded title"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QVERIFY(!repository.saveNote(created->id, QString(161, QLatin1Char('x')),
+                                 QStringLiteral("must not be written"), created->contentHash, &error));
+    QVERIFY(!error.isEmpty());
+    const auto current = repository.note(created->id, true, &error);
+    QVERIFY2(current.has_value(), qPrintable(error));
+    QCOMPARE(current->title, QStringLiteral("Bounded title"));
+}
+
+void NoteCreationTest::tagUpdatesPersistToMarkdown()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Tagged"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QVERIFY2(repository.setTags(created->id, {QStringLiteral(" portable "), QStringLiteral("PORTABLE")}, &error),
+             qPrintable(error));
+
+    QFile markdown(vault.filePath(created->relativePath));
+    QVERIFY(markdown.open(QIODevice::ReadOnly));
+    const QString text = QString::fromUtf8(markdown.readAll());
+    QVERIFY(text.contains(QStringLiteral("portable")));
+    QCOMPARE(text.count(QStringLiteral("portable")), 1);
+}
+
+void NoteCreationTest::refreshRejectsDuplicateStableIds()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const QByteArray markdown = "---\nid: shared-id\ntags: []\n---\n\n# Shared\n\nBody\n";
+    for (const QString &name : {QStringLiteral("first.md"), QStringLiteral("second.md")}) {
+        QFile file(vault.filePath(name));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        QCOMPARE(file.write(markdown), qint64(markdown.size()));
+        file.close();
+    }
+
+    QVERIFY(!repository.refresh(&error));
+    QVERIFY(error.contains(QStringLiteral("ID"), Qt::CaseInsensitive));
+    QCOMPARE(repository.notes(&error).size(), 0);
+    QVERIFY(QFileInfo::exists(vault.filePath(QStringLiteral("first.md"))));
+    QVERIFY(QFileInfo::exists(vault.filePath(QStringLiteral("second.md"))));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
