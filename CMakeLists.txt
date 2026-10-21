@@ -55,4 +55,13 @@ if (BUILD_TESTING)
     )
     target_link_libraries(crossnote_note_creation_tests PRIVATE crossnote_data Qt6::Test)
     add_test(NAME crossnote_note_creation COMMAND crossnote_note_creation_tests)
+
+    qt_add_executable(crossnote_note_list_model_tests
+        tests/NoteListModelTest.cpp
+        src/presentation/NoteListModel.cpp
+        src/presentation/NoteListModel.h
+    )
+    target_include_directories(crossnote_note_list_model_tests PRIVATE src)
+    target_link_libraries(crossnote_note_list_model_tests PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME crossnote_note_list_model COMMAND crossnote_note_list_model_tests)
 endif()
