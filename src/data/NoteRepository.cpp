@@ -363,11 +363,29 @@ public:
             item.tags = parseTags(query.value(7).toString());
             item.archived = query.value(8).toBool();
             const QString absolute = safeAbsolutePath(vault, item.relativePath);
-            if (absolute.isEmpty())
-                continue;
+            if (absolute.isEmpty()) {
+                query.finish();
+                result.clear();
+                if (error) *error = QStringLiteral("Der Notizpfad %1 liegt außerhalb des Vaults.")
+                    .arg(item.relativePath);
+                return result;
+            }
             QFile file(absolute);
-            if (file.open(QIODevice::ReadOnly))
-                item.content = QString::fromUtf8(file.readAll());
+            if (!file.open(QIODevice::ReadOnly)) {
+                query.finish();
+                result.clear();
+                if (error) *error = QStringLiteral("Notizdatei %1 kann nicht gelesen werden: %2")
+                    .arg(item.relativePath, file.errorString());
+                return result;
+            }
+            item.content = QString::fromUtf8(file.readAll());
+            if (file.error() != QFileDevice::NoError) {
+                query.finish();
+                result.clear();
+                if (error) *error = QStringLiteral("Notizdatei %1 konnte nicht vollständig gelesen werden: %2")
+                    .arg(item.relativePath, file.errorString());
+                return result;
+            }
             result.append(std::move(item));
         }
         return result;
