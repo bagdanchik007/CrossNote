@@ -28,6 +28,7 @@ private slots:
     void refreshRejectsDuplicateStableIds();
     void rejectsRepositoryQueriesBeforeVaultOpen();
     void archiveStateSurvivesRepositoryReopen();
+    void clearsStaleErrorOutputsOnSuccess();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -442,6 +443,28 @@ void NoteCreationTest::archiveStateSurvivesRepositoryReopen()
         QVERIFY2(reopened.has_value(), qPrintable(error));
         QVERIFY(reopened->archived);
     }
+}
+
+void NoteCreationTest::clearsStaleErrorOutputsOnSuccess()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error = QStringLiteral("stale error");
+    QVERIFY(repository.openVault(vault.path(), &error));
+    QVERIFY(error.isEmpty());
+    error = QStringLiteral("stale error");
+    const auto created = repository.createNote(QStringLiteral("No stale errors"), &error);
+    QVERIFY(created.has_value());
+    QVERIFY(error.isEmpty());
+    error = QStringLiteral("stale error");
+    QVERIFY(repository.setFavorite(created->id, true, &error));
+    QVERIFY(error.isEmpty());
+    error = QStringLiteral("stale error");
+    QVERIFY(repository.note(created->id, false, &error).has_value());
+    QVERIFY(error.isEmpty());
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
