@@ -50,7 +50,6 @@ signals:
     void tagFilterChanged();
 
 private:
-    void rebuildVisibleRows();
     [[nodiscard]] QString previewFor(const Note &note) const;
 
     QVector<Note> m_notes;
