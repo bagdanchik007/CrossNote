@@ -716,9 +716,19 @@ bool NoteRepository::refresh(QString *error)
         seenPaths.insert(relativePath);
 
         QFile file(absolutePath);
-        if (!file.open(QIODevice::ReadOnly))
-            continue;
+        if (!file.open(QIODevice::ReadOnly)) {
+            rollback();
+            if (error) *error = QStringLiteral("Notizdatei %1 kann nicht gelesen werden: %2")
+                .arg(relativePath, file.errorString());
+            return false;
+        }
         const QString text = QString::fromUtf8(file.readAll());
+        if (file.error() != QFileDevice::NoError) {
+            rollback();
+            if (error) *error = QStringLiteral("Notizdatei %1 konnte nicht vollständig gelesen werden: %2")
+                .arg(relativePath, file.errorString());
+            return false;
+        }
         QFileInfo info(file);
         file.close();
 
@@ -729,7 +739,12 @@ bool NoteRepository::refresh(QString *error)
         QSqlQuery existing(m_impl->database);
         existing.prepare(QStringLiteral("SELECT id, created_at, favorite, tags FROM notes WHERE relative_path = ?"));
         existing.addBindValue(relativePath);
-        if (existing.exec() && existing.next()) {
+        if (!existing.exec()) {
+            rollback();
+            if (error) *error = sqlError(existing);
+            return false;
+        }
+        if (existing.next()) {
             existingId = existing.value(0).toString();
             createdAt = existing.value(1).toLongLong();
             favorite = existing.value(2).toBool();
