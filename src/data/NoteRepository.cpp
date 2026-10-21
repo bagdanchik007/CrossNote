@@ -6,6 +6,7 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QRegularExpression>
@@ -680,6 +681,7 @@ bool NoteRepository::refresh(QString *error)
     const auto rollback = [this] { m_impl->database.rollback(); };
 
     QSet<QString> seenPaths;
+    QHash<QString, QString> noteIdPaths;
     QDirIterator iterator(m_impl->vault, {QStringLiteral("*.md")}, QDir::Files,
                           QDirIterator::Subdirectories);
     while (iterator.hasNext()) {
@@ -718,8 +720,33 @@ bool NoteRepository::refresh(QString *error)
         existing.finish();
 
         const Note parsed = parseMarkdownFile(text, existingId, info.completeBaseName(), relativePath);
-        const QString id = parsed.id.isEmpty()
-            ? QUuid::createUuid().toString(QUuid::WithoutBraces) : parsed.id;
+        const QString id = existingId.isEmpty()
+            ? (parsed.id.isEmpty() ? QUuid::createUuid().toString(QUuid::WithoutBraces) : parsed.id)
+            : existingId;
+        if (noteIdPaths.contains(id) && noteIdPaths.value(id) != relativePath) {
+            rollback();
+            if (error) *error = QStringLiteral("Doppelte Notiz-ID %1 in %2 und %3.")
+                .arg(id, noteIdPaths.value(id), relativePath);
+            return false;
+        }
+        QSqlQuery idCollision(m_impl->database);
+        idCollision.prepare(QStringLiteral("SELECT relative_path FROM notes WHERE id = ?"));
+        idCollision.addBindValue(id);
+        if (!idCollision.exec()) {
+            rollback();
+            if (error) *error = sqlError(idCollision);
+            return false;
+        }
+        if (idCollision.next() && idCollision.value(0).toString() != relativePath) {
+            const QString collidingPath = idCollision.value(0).toString();
+            idCollision.finish();
+            rollback();
+            if (error) *error = QStringLiteral("Doppelte Notiz-ID %1 in %2 und %3.")
+                .arg(id, collidingPath, relativePath);
+            return false;
+        }
+        idCollision.finish();
+        noteIdPaths.insert(id, relativePath);
         const QString title = parsed.title.trimmed().isEmpty() ? info.completeBaseName() : parsed.title;
         if (createdAt <= 0)
             createdAt = info.lastModified().toUTC().toMSecsSinceEpoch();
