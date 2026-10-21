@@ -83,6 +83,14 @@ public:
     QString connectionName;
     QSqlDatabase database;
 
+    bool requireOpen(QString *error) const
+    {
+        if (database.isOpen() && !vault.isEmpty())
+            return true;
+        if (error) *error = QStringLiteral("Öffne zuerst einen Notizordner.");
+        return false;
+    }
+
     ~Impl()
     {
         if (database.isValid()) {
@@ -311,6 +319,8 @@ public:
     QVector<Note> list(QString *error) const
     {
         QVector<Note> result;
+        if (!requireOpen(error))
+            return result;
         QSqlQuery query(database);
         query.prepare(QStringLiteral("SELECT id, title, relative_path, created_at, updated_at, "
                                      "last_opened_at, favorite, tags, archived FROM notes ORDER BY updated_at DESC"));
@@ -383,6 +393,8 @@ bool NoteRepository::searchIds(const QString &query, QStringList *ids, QString *
         return false;
     }
     ids->clear();
+    if (!m_impl->requireOpen(error))
+        return false;
     if (query.trimmed().isEmpty())
         return true;
 
@@ -411,6 +423,8 @@ bool NoteRepository::searchIds(const QString &query, QStringList *ids, QString *
 QVector<Note> NoteRepository::trashedNotes(QString *error) const
 {
     QVector<Note> result;
+    if (!m_impl->requireOpen(error))
+        return result;
     QSqlQuery query(m_impl->database);
     query.prepare(QStringLiteral("SELECT id, title, trash_path, created_at, updated_at, last_opened_at, favorite, tags FROM trashed_notes ORDER BY deleted_at DESC"));
     if (!query.exec()) {
@@ -539,6 +553,8 @@ bool NoteRepository::rebuildSearchIndex(QString *error)
 
 std::optional<Note> NoteRepository::note(const QString &id, bool includeContent, QString *error) const
 {
+    if (!m_impl->requireOpen(error))
+        return std::nullopt;
     QSqlQuery query(m_impl->database);
     query.prepare(QStringLiteral("SELECT title, relative_path, created_at, updated_at, "
                                  "last_opened_at, favorite, tags, archived FROM notes WHERE id = ?"));
@@ -585,6 +601,8 @@ std::optional<Note> NoteRepository::note(const QString &id, bool includeContent,
 
 std::optional<QString> NoteRepository::noteIdForTitle(const QString &title, QString *error) const
 {
+    if (!m_impl->requireOpen(error))
+        return std::nullopt;
     QSqlQuery query(m_impl->database);
     query.prepare(QStringLiteral("SELECT id FROM notes WHERE title = ? COLLATE NOCASE "
                                  "ORDER BY updated_at DESC, id LIMIT 1"));
