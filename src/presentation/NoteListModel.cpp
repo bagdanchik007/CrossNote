@@ -57,7 +57,9 @@ void NoteListModel::setNotes(QVector<Note> notes)
     std::sort(notes.begin(), notes.end(), [this](const Note &left, const Note &right) {
         if (m_section == QStringLiteral("recent") && left.lastOpenedAt != right.lastOpenedAt)
             return left.lastOpenedAt > right.lastOpenedAt;
-        return left.updatedAt > right.updatedAt;
+        if (left.updatedAt != right.updatedAt)
+            return left.updatedAt > right.updatedAt;
+        return left.id < right.id;
     });
 
     beginResetModel();
