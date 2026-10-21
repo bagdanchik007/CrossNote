@@ -20,7 +20,8 @@ int NoteListModel::rowCount(const QModelIndex &parent) const
 
 QVariant NoteListModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() < 0 || index.row() >= m_visibleRows.size())
+    if (!index.isValid() || index.model() != this || index.column() != 0
+        || index.row() < 0 || index.row() >= m_visibleRows.size())
         return {};
 
     const Note &note = m_notes.at(m_visibleRows.at(index.row()));
