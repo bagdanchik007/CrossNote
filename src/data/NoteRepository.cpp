@@ -1326,6 +1326,8 @@ bool NoteRepository::setTags(const QString &id, const QStringList &tags, QString
     if (!current)
         return false;
     const QString serializedTags = normalizedTags(tags);
+    if (serializedTags == normalizedTags(current->tags))
+        return true;
     const QString notePath = safeAbsolutePath(m_impl->vault, current->relativePath);
     if (notePath.isEmpty()) {
         if (error) *error = QStringLiteral("Der Notizpfad liegt außerhalb des geöffneten Vaults.");
@@ -1367,6 +1369,10 @@ bool NoteRepository::setTags(const QString &id, const QStringList &tags, QString
     if (!m_impl->replaceSearchDocument(id, current->title, current->content, serializedTags, &indexError)) {
         m_impl->database.rollback();
         if (error) *error = indexError;
+        return false;
+    }
+    if (!archiveMarkdownVersion(m_impl->vault, id, previousBytes, error)) {
+        m_impl->database.rollback();
         return false;
     }
     QSaveFile output(notePath);
