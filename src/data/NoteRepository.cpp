@@ -1231,21 +1231,65 @@ bool NoteRepository::setTags(const QString &id, const QStringList &tags, QString
     if (!current)
         return false;
     const QString serializedTags = normalizedTags(tags);
+    const QString notePath = safeAbsolutePath(m_impl->vault, current->relativePath);
+    if (notePath.isEmpty()) {
+        if (error) *error = QStringLiteral("Der Notizpfad liegt außerhalb des geöffneten Vaults.");
+        return false;
+    }
+    QFile source(notePath);
+    if (!source.open(QIODevice::ReadOnly)) {
+        if (error) *error = source.errorString();
+        return false;
+    }
+    const QByteArray previousBytes = source.readAll();
+    source.close();
+    if (QCryptographicHash::hash(previousBytes, QCryptographicHash::Sha256) != current->contentHash) {
+        if (error) *error = QStringLiteral("Die Notiz wurde extern geändert. Aktualisiere den Vault und versuche es erneut.");
+        return false;
+    }
+    const QByteArray updatedBytes = markdownForNote(id, current->title, current->content,
+                                                    parseTags(serializedTags), current->frontMatter).toUtf8();
+
+    if (!m_impl->database.transaction()) {
+        if (error) *error = m_impl->database.lastError().text();
+        return false;
+    }
     QSqlQuery query(m_impl->database);
     query.prepare(QStringLiteral("UPDATE notes SET tags = ? WHERE id = ?"));
     query.addBindValue(serializedTags);
     query.addBindValue(id);
     if (!query.exec()) {
+        m_impl->database.rollback();
         if (error) *error = sqlError(query);
         return false;
     }
     if (query.numRowsAffected() != 1) {
+        m_impl->database.rollback();
         if (error) *error = QStringLiteral("Die Notiz wurde nicht gefunden.");
         return false;
     }
     QString indexError;
     if (!m_impl->replaceSearchDocument(id, current->title, current->content, serializedTags, &indexError)) {
+        m_impl->database.rollback();
         if (error) *error = indexError;
+        return false;
+    }
+    QSaveFile output(notePath);
+    if (!output.open(QIODevice::WriteOnly) || output.write(updatedBytes) != updatedBytes.size() || !output.commit()) {
+        const QString message = output.errorString();
+        m_impl->database.rollback();
+        if (error) *error = message;
+        return false;
+    }
+    if (!m_impl->database.commit()) {
+        const QString commitError = m_impl->database.lastError().text();
+        m_impl->database.rollback();
+        QSaveFile restore(notePath);
+        const bool restored = restore.open(QIODevice::WriteOnly)
+            && restore.write(previousBytes) == previousBytes.size() && restore.commit();
+        if (error) *error = restored ? commitError
+            : QStringLiteral("Tag-Metadaten konnten nicht gespeichert werden und die Notizdatei ließ sich nicht zurücksetzen: %1")
+                  .arg(restore.errorString());
         return false;
     }
     emit notesChanged();
