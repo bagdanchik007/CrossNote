@@ -371,6 +371,10 @@ void NoteCreationTest::tagUpdatesPersistToMarkdown()
     const QString text = QString::fromUtf8(markdown.readAll());
     QVERIFY(text.contains(QStringLiteral("portable")));
     QCOMPARE(text.count(QStringLiteral("portable")), 1);
+    const QString backupDirectory = vault.filePath(QStringLiteral(".backups/%1").arg(created->id));
+    QCOMPARE(QDir(backupDirectory).entryList({QStringLiteral("*.md")}, QDir::Files).size(), 1);
+    QVERIFY2(repository.setTags(created->id, {QStringLiteral("portable")}, &error), qPrintable(error));
+    QCOMPARE(QDir(backupDirectory).entryList({QStringLiteral("*.md")}, QDir::Files).size(), 1);
 }
 
 void NoteCreationTest::refreshRejectsDuplicateStableIds()
