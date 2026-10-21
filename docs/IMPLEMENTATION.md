@@ -38,3 +38,13 @@ Frontmatter-Felder, die CrossNote nicht versteht, bleiben beim Speichern erhalte
 - Benutzerkonto, Cloud-API oder Online-Sync
 - Gemeinsame Datenbank zwischen Geräten
 - Erweiterungen und Graph-Visualisierung
+
+## Stabilitätsverträge der lokalen APIs
+
+- `NoteRepository` ist synchron und wird auf dem Qt-Thread verwendet, auf dem die Instanz erstellt wurde; seine SQLite-Verbindung wird nicht zwischen Threads geteilt.
+- Bei Repository-Aufrufen bedeutet `false` oder `std::nullopt` einen Fehler bzw. keinen gefundenen Datensatz; optionale `QString *error`-Ausgaben enthalten nach erfolgreichem Aufruf keinen alten Fehlertext.
+- Eine Notizdatei muss eine eindeutige stabile UUID haben. Ein doppelter UUID-Wert bricht den Vault-Abgleich ab und lässt die betroffenen Dateien unverändert, statt eine Notiz still zu überschreiben.
+- `setTags()` speichert normalisierte Tags sowohl im SQLite-Suchindex als auch im YAML-Frontmatter und erstellt vorher eine Versionssicherung.
+- Markdown-Dateien werden als UTF-8-Bytes mit identischen LF-Zeilenenden auf allen Plattformen geschrieben.
+- `NoteListModel` liefert Daten ausschließlich für gültige Indizes seiner eigenen Instanz und seiner einzigen Spalte; bei gleicher Änderungszeit ist die Reihenfolge über die Notiz-ID deterministisch.
+- Neue SQLite-Versionen ergänzen Metadaten mit Migrationen, die nach einem unterbrochenen Schritt sicher erneut gestartet werden können.
