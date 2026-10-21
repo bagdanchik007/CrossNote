@@ -27,6 +27,7 @@ private slots:
     void tagUpdatesPersistToMarkdown();
     void refreshRejectsDuplicateStableIds();
     void rejectsRepositoryQueriesBeforeVaultOpen();
+    void archiveStateSurvivesRepositoryReopen();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -411,6 +412,33 @@ void NoteCreationTest::rejectsRepositoryQueriesBeforeVaultOpen()
     error.clear();
     QVERIFY(!repository.note(QStringLiteral("missing"), true, &error).has_value());
     QVERIFY(!error.isEmpty());
+}
+
+void NoteCreationTest::archiveStateSurvivesRepositoryReopen()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    QString error;
+    QString noteId;
+    {
+        NoteRepository repository(index.path());
+        QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+        const auto created = repository.createNote(QStringLiteral("Archive persists"), &error);
+        QVERIFY2(created.has_value(), qPrintable(error));
+        noteId = created->id;
+        QVERIFY2(repository.setArchived(noteId, true, &error), qPrintable(error));
+        QVERIFY(!repository.setArchived(QStringLiteral("missing"), true, &error));
+        QVERIFY(!error.isEmpty());
+    }
+    {
+        NoteRepository repository(index.path());
+        QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+        const auto reopened = repository.note(noteId, false, &error);
+        QVERIFY2(reopened.has_value(), qPrintable(error));
+        QVERIFY(reopened->archived);
+    }
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
