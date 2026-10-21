@@ -39,6 +39,13 @@ void NoteListModelTest::rejectsInvalidIndexesAndParents()
     QCOMPARE(model.rowCount(model.index(0, 0)), 0);
     QVERIFY(!model.data(QModelIndex(), NoteListModel::TitleRole).isValid());
     QVERIFY(!model.data(model.index(0, 0), NoteListModel::TitleRole).isValid());
+
+    Note item = note(QStringLiteral("id"), QStringLiteral("Title"), QDateTime::currentDateTimeUtc());
+    model.setNotes({item});
+    NoteListModel foreign;
+    foreign.setNotes({item});
+    QVERIFY(!model.data(foreign.index(0, 0), NoteListModel::TitleRole).isValid());
+    QVERIFY(!model.data(model.index(0, 1), NoteListModel::TitleRole).isValid());
 }
 
 void NoteListModelTest::sortsNotesByModificationTimeWithStableTieBreaks()
