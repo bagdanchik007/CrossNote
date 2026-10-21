@@ -8,6 +8,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Quick QuickControls2 Sql)
 qt_standard_project_setup(REQUIRES 6.5)
+if (QT_KNOWN_POLICY_QTP0004)
+    qt_policy(SET QTP0004 NEW)
+endif()
 
 add_library(crossnote_data STATIC
     src/data/NoteRepository.cpp
