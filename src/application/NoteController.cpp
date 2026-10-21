@@ -168,9 +168,12 @@ void NoteController::openNote(const QString &id)
     m_selectedTags = selected->tags;
     emit selectedTagsChanged();
     refreshLinkAnalysis();
-    m_repository.markOpened(id, &error);
+    const bool openedRecorded = m_repository.markOpened(id, &error);
     emit currentNoteChanged();
-    clearError();
+    if (openedRecorded)
+        clearError();
+    else
+        setError(error);
     setStatus(tr("Notiz geöffnet"));
 }
 
