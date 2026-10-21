@@ -1092,11 +1092,16 @@ bool NoteRepository::exportNote(const QString &id, const QString &destination, Q
 bool NoteRepository::saveNote(const QString &id, const QString &title,
                               const QString &content, const QByteArray &expectedHash, QString *error)
 {
+    const QString normalizedTitle = title.simplified();
+    if (normalizedTitle.size() > 160) {
+        if (error) *error = QStringLiteral("Der Titel darf höchstens 160 Zeichen lang sein.");
+        return false;
+    }
     auto current = note(id, true, error);
     if (!current)
         return false;
 
-    const QString cleanTitle = title.simplified().isEmpty() ? QStringLiteral("Unbenannte Notiz") : title.simplified();
+    const QString cleanTitle = normalizedTitle.isEmpty() ? QStringLiteral("Unbenannte Notiz") : normalizedTitle;
     bool externalConflict = false;
     if (!expectedHash.isEmpty() && current->contentHash != expectedHash) {
         externalConflict = true;
