@@ -26,6 +26,7 @@ private slots:
     void rejectsOverlongTitlesOnSave();
     void tagUpdatesPersistToMarkdown();
     void refreshRejectsDuplicateStableIds();
+    void rejectsRepositoryQueriesBeforeVaultOpen();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -389,6 +390,27 @@ void NoteCreationTest::refreshRejectsDuplicateStableIds()
     QCOMPARE(repository.notes(&error).size(), 0);
     QVERIFY(QFileInfo::exists(vault.filePath(QStringLiteral("first.md"))));
     QVERIFY(QFileInfo::exists(vault.filePath(QStringLiteral("second.md"))));
+}
+
+void NoteCreationTest::rejectsRepositoryQueriesBeforeVaultOpen()
+{
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QStringList ids{QStringLiteral("stale")};
+    QVERIFY(!repository.searchIds(QStringLiteral("anything"), &ids, &error));
+    QVERIFY(ids.isEmpty());
+    QVERIFY(!error.isEmpty());
+    error.clear();
+    QVERIFY(!repository.refresh(&error));
+    QVERIFY(!error.isEmpty());
+    error.clear();
+    QVERIFY(repository.notes(&error).isEmpty());
+    QVERIFY(!error.isEmpty());
+    error.clear();
+    QVERIFY(!repository.note(QStringLiteral("missing"), true, &error).has_value());
+    QVERIFY(!error.isEmpty());
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
