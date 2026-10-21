@@ -29,6 +29,7 @@ private slots:
     void rejectsRepositoryQueriesBeforeVaultOpen();
     void archiveStateSurvivesRepositoryReopen();
     void clearsStaleErrorOutputsOnSuccess();
+    void reportsMissingFilesInsteadOfSilentlyHidingNotes();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -469,6 +470,25 @@ void NoteCreationTest::clearsStaleErrorOutputsOnSuccess()
     error = QStringLiteral("stale error");
     QVERIFY(repository.note(created->id, false, &error).has_value());
     QVERIFY(error.isEmpty());
+}
+
+void NoteCreationTest::reportsMissingFilesInsteadOfSilentlyHidingNotes()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Temporarily missing"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QVERIFY(QFile::remove(vault.filePath(created->relativePath)));
+
+    const QVector<Note> visible = repository.notes(&error);
+    QVERIFY(visible.isEmpty());
+    QVERIFY(error.contains(QStringLiteral("Temporarily missing"), Qt::CaseInsensitive)
+            || error.contains(created->relativePath));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
