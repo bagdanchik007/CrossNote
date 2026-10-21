@@ -361,6 +361,9 @@ void NoteCreationTest::tagUpdatesPersistToMarkdown()
     QVERIFY2(created.has_value(), qPrintable(error));
     QVERIFY2(repository.setTags(created->id, {QStringLiteral(" portable "), QStringLiteral("PORTABLE")}, &error),
              qPrintable(error));
+    const auto tagged = repository.note(created->id, false, &error);
+    QVERIFY2(tagged.has_value(), qPrintable(error));
+    QCOMPARE(tagged->tags, QStringList({QStringLiteral("portable")}));
 
     QFile markdown(vault.filePath(created->relativePath));
     QVERIFY(markdown.open(QIODevice::ReadOnly));
