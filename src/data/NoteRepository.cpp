@@ -966,7 +966,7 @@ std::optional<Note> NoteRepository::createNote(const QString &title, const QStri
     const QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     const QDateTime now = QDateTime::currentDateTimeUtc();
     QSaveFile file(QDir(m_impl->vault).filePath(relativePath));
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::WriteOnly)) {
         if (error) *error = file.errorString();
         return std::nullopt;
     }
@@ -1148,7 +1148,7 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
 
     const QString targetAbsolute = QDir(m_impl->vault).filePath(targetPath);
     QSaveFile file(targetAbsolute);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::WriteOnly)) {
         if (error) *error = file.errorString();
         return false;
     }
