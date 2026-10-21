@@ -376,7 +376,7 @@ void NoteCreationTest::refreshRejectsDuplicateStableIds()
     NoteRepository repository(index.path());
     QString error;
     QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
-    const QByteArray markdown = "---\nid: shared-id\ntags: []\n---\n\n# Shared\n\nBody\n";
+    const QByteArray markdown = "---\nid: 5e6eb4d4-42c1-4c45-93a9-b70a25a4c5c6\ntags: []\n---\n\n# Shared\n\nBody\n";
     for (const QString &name : {QStringLiteral("first.md"), QStringLiteral("second.md")}) {
         QFile file(vault.filePath(name));
         QVERIFY(file.open(QIODevice::WriteOnly));
