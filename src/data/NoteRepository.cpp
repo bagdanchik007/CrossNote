@@ -348,10 +348,10 @@ public:
             item.id = query.value(0).toString();
             item.title = query.value(1).toString();
             item.relativePath = query.value(2).toString();
-            item.createdAt = QDateTime::fromMSecsSinceEpoch(query.value(3).toLongLong(), Qt::UTC);
-            item.updatedAt = QDateTime::fromMSecsSinceEpoch(query.value(4).toLongLong(), Qt::UTC);
+            item.createdAt = QDateTime::fromMSecsSinceEpoch(query.value(3).toLongLong(), QTimeZone::utc());
+            item.updatedAt = QDateTime::fromMSecsSinceEpoch(query.value(4).toLongLong(), QTimeZone::utc());
             if (!query.value(5).isNull())
-                item.lastOpenedAt = QDateTime::fromMSecsSinceEpoch(query.value(5).toLongLong(), Qt::UTC);
+                item.lastOpenedAt = QDateTime::fromMSecsSinceEpoch(query.value(5).toLongLong(), QTimeZone::utc());
             item.favorite = query.value(6).toBool();
             item.tags = parseTags(query.value(7).toString());
             item.archived = query.value(8).toBool();
@@ -451,10 +451,10 @@ QVector<Note> NoteRepository::trashedNotes(QString *error) const
         item.id = query.value(0).toString();
         item.title = query.value(1).toString();
         item.relativePath = query.value(2).toString();
-        item.createdAt = QDateTime::fromMSecsSinceEpoch(query.value(3).toLongLong(), Qt::UTC);
-        item.updatedAt = QDateTime::fromMSecsSinceEpoch(query.value(4).toLongLong(), Qt::UTC);
+        item.createdAt = QDateTime::fromMSecsSinceEpoch(query.value(3).toLongLong(), QTimeZone::utc());
+        item.updatedAt = QDateTime::fromMSecsSinceEpoch(query.value(4).toLongLong(), QTimeZone::utc());
         if (!query.value(5).isNull())
-            item.lastOpenedAt = QDateTime::fromMSecsSinceEpoch(query.value(5).toLongLong(), Qt::UTC);
+            item.lastOpenedAt = QDateTime::fromMSecsSinceEpoch(query.value(5).toLongLong(), QTimeZone::utc());
         item.favorite = query.value(6).toBool();
         item.tags = parseTags(query.value(7).toString());
         const QString absolute = safeAbsolutePath(m_impl->vault, item.relativePath);
@@ -585,10 +585,10 @@ std::optional<Note> NoteRepository::note(const QString &id, bool includeContent,
     result.id = id;
     result.title = query.value(0).toString();
     result.relativePath = query.value(1).toString();
-    result.createdAt = QDateTime::fromMSecsSinceEpoch(query.value(2).toLongLong(), Qt::UTC);
-    result.updatedAt = QDateTime::fromMSecsSinceEpoch(query.value(3).toLongLong(), Qt::UTC);
+    result.createdAt = QDateTime::fromMSecsSinceEpoch(query.value(2).toLongLong(), QTimeZone::utc());
+    result.updatedAt = QDateTime::fromMSecsSinceEpoch(query.value(3).toLongLong(), QTimeZone::utc());
     if (!query.value(4).isNull())
-        result.lastOpenedAt = QDateTime::fromMSecsSinceEpoch(query.value(4).toLongLong(), Qt::UTC);
+        result.lastOpenedAt = QDateTime::fromMSecsSinceEpoch(query.value(4).toLongLong(), QTimeZone::utc());
     result.favorite = query.value(5).toBool();
     result.tags = parseTags(query.value(6).toString());
     result.archived = query.value(7).toBool();
