@@ -260,13 +260,28 @@ public:
         }
 
         if (version < 3) {
-            QSqlQuery addArchivedColumn(database);
-            if (!addArchivedColumn.exec(QStringLiteral(
-                    "ALTER TABLE notes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"))) {
-                if (error) *error = sqlError(addArchivedColumn);
+            QSqlQuery columns(database);
+            if (!columns.exec(QStringLiteral("PRAGMA table_info(notes)"))) {
+                if (error) *error = sqlError(columns);
                 return false;
             }
-            addArchivedColumn.finish();
+            bool hasArchivedColumn = false;
+            while (columns.next()) {
+                if (columns.value(1).toString().compare(QStringLiteral("archived"), Qt::CaseInsensitive) == 0) {
+                    hasArchivedColumn = true;
+                    break;
+                }
+            }
+            columns.finish();
+            if (!hasArchivedColumn) {
+                QSqlQuery addArchivedColumn(database);
+                if (!addArchivedColumn.exec(QStringLiteral(
+                        "ALTER TABLE notes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"))) {
+                    if (error) *error = sqlError(addArchivedColumn);
+                    return false;
+                }
+                addArchivedColumn.finish();
+            }
             QSqlQuery updateVersion(database);
             if (!updateVersion.exec(QStringLiteral("INSERT INTO schema_version (version) VALUES (3)"))) {
                 if (error) *error = sqlError(updateVersion);
