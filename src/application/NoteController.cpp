@@ -268,7 +268,12 @@ void NoteController::setTags(const QString &id, const QStringList &tags)
         return;
     }
     if (id == m_selectedId) {
-        m_selectedTags = tags;
+        const auto updated = m_repository.note(id, false, &error);
+        if (!updated) {
+            setError(error);
+            return;
+        }
+        m_selectedTags = updated->tags;
         emit selectedTagsChanged();
     }
     clearError();
