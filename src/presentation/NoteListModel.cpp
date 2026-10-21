@@ -66,6 +66,7 @@ void NoteListModel::setNotes(QVector<Note> notes)
     beginResetModel();
     m_notes = std::move(notes);
     m_visibleRows.clear();
+    const QDateTime editedAfter = QDateTime::currentDateTimeUtc().addDays(-7);
     for (qsizetype i = 0; i < m_notes.size(); ++i) {
         const Note &note = m_notes.at(i);
         const bool inSection = m_section == QStringLiteral("archive")
@@ -74,7 +75,7 @@ void NoteListModel::setNotes(QVector<Note> notes)
                 ? note.favorite
                 : m_section == QStringLiteral("recent") ? note.lastOpenedAt.isValid()
                 : m_section == QStringLiteral("edited")
-                    ? note.updatedAt >= QDateTime::currentDateTimeUtc().addDays(-7)
+                    ? note.updatedAt >= editedAfter
                     : true);
         const QString searchable = note.title + u' ' + note.content + u' '
             + note.tags.join(u' ');
