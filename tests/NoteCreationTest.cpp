@@ -40,6 +40,7 @@ private slots:
     void rejectsMarkdownSymlinksOutsideVault();
     void keepsCurrentVaultWhenSwitchFails();
     void unchangedFlagsDoNotEmitReloads();
+    void rebuildsSearchIndexFromMarkdownFiles();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -699,6 +700,31 @@ void NoteCreationTest::unchangedFlagsDoNotEmitReloads()
     QCOMPARE(changedSpy.count(), 0);
     QVERIFY(!repository.setFavorite(QStringLiteral("missing"), true, &error));
     QVERIFY(!error.isEmpty());
+}
+
+void NoteCreationTest::rebuildsSearchIndexFromMarkdownFiles()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Index rebuild"), QStringLiteral("oldtoken"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QFile markdown(vault.filePath(created->relativePath));
+    QVERIFY(markdown.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    const QByteArray external = "---\nid: " + created->id.toUtf8()
+        + "\ntags: []\n---\n\n# Index rebuild\n\nnewtoken\n";
+    QCOMPARE(markdown.write(external), qint64(external.size()));
+    markdown.close();
+    QVERIFY2(repository.rebuildSearchIndex(&error), qPrintable(error));
+    QStringList ids;
+    QVERIFY2(repository.searchIds(QStringLiteral("newtoken"), &ids, &error), qPrintable(error));
+    QVERIFY(ids.contains(created->id));
+    QVERIFY2(repository.searchIds(QStringLiteral("oldtoken"), &ids, &error), qPrintable(error));
+    QVERIFY(!ids.contains(created->id));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
