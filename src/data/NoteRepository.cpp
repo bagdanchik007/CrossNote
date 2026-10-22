@@ -1205,6 +1205,10 @@ bool NoteRepository::exportNote(const QString &id, const QString &destination, Q
         return false;
     }
     const QByteArray contents = source.readAll();
+    if (source.error() != QFileDevice::NoError) {
+        if (error) *error = source.errorString();
+        return false;
+    }
     source.close();
 
     QSaveFile output(targetPath);
