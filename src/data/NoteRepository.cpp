@@ -1266,14 +1266,18 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
 
     const QByteArray bytes = markdownForNote(id, cleanTitle, content, current->tags,
                                               current->frontMatter).toUtf8();
+    QFile previous(QDir(m_impl->vault).filePath(current->relativePath));
+    if (!previous.open(QIODevice::ReadOnly)) {
+        if (error) *error = previous.errorString();
+        return false;
+    }
+    const QByteArray previousBytes = previous.readAll();
+    if (previous.error() != QFileDevice::NoError) {
+        if (error) *error = previous.errorString();
+        return false;
+    }
+    previous.close();
     if (!externalConflict && current->contentHash != QCryptographicHash::hash(bytes, QCryptographicHash::Sha256)) {
-        QFile previous(QDir(m_impl->vault).filePath(current->relativePath));
-        if (!previous.open(QIODevice::ReadOnly)) {
-            if (error) *error = previous.errorString();
-            return false;
-        }
-        const QByteArray previousBytes = previous.readAll();
-        previous.close();
         if (!archiveMarkdownVersion(m_impl->vault, id, previousBytes, error))
             return false;
     }
@@ -1289,6 +1293,17 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
         return false;
     }
 
+    if (!m_impl->database.transaction()) {
+        QSaveFile restore(QDir(m_impl->vault).filePath(current->relativePath));
+        restore.open(QIODevice::WriteOnly);
+        restore.write(previousBytes);
+        restore.commit();
+        if (targetPath != current->relativePath)
+            QFile::remove(targetAbsolute);
+        if (error) *error = m_impl->database.lastError().text();
+        return false;
+    }
+
     const QDateTime now = QDateTime::currentDateTimeUtc();
     QSqlQuery update(m_impl->database);
     update.prepare(QStringLiteral("UPDATE notes SET title = ?, relative_path = ?, updated_at = ? WHERE id = ?"));
@@ -1297,6 +1312,7 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
     update.addBindValue(now.toMSecsSinceEpoch());
     update.addBindValue(id);
     if (!update.exec() || update.numRowsAffected() != 1) {
+        m_impl->database.rollback();
         if (targetPath != current->relativePath)
             QFile::remove(targetAbsolute);
         if (error) *error = update.lastError().text().isEmpty()
@@ -1305,8 +1321,28 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
     }
     QString indexError;
     if (!m_impl->replaceSearchDocument(id, cleanTitle, content, normalizedTags(current->tags), &indexError)) {
+        m_impl->database.rollback();
+        QSaveFile restore(QDir(m_impl->vault).filePath(current->relativePath));
+        const bool restored = restore.open(QIODevice::WriteOnly)
+            && restore.write(previousBytes) == previousBytes.size() && restore.commit();
+        if (targetPath != current->relativePath)
+            QFile::remove(targetAbsolute);
         if (error) *error = QStringLiteral("Die Notizdatei wurde gespeichert, aber der Suchindex ist veraltet: %1")
-            .arg(indexError);
+            .arg(restored ? indexError : QStringLiteral("%1; außerdem konnte die Markdown-Datei nicht zurückgesetzt werden: %2")
+                              .arg(indexError, restore.errorString()));
+        return false;
+    }
+    if (!m_impl->database.commit()) {
+        const QString message = m_impl->database.lastError().text();
+        m_impl->database.rollback();
+        QSaveFile restore(QDir(m_impl->vault).filePath(current->relativePath));
+        const bool restored = restore.open(QIODevice::WriteOnly)
+            && restore.write(previousBytes) == previousBytes.size() && restore.commit();
+        if (targetPath != current->relativePath)
+            QFile::remove(targetAbsolute);
+        if (error) *error = restored ? message
+            : QStringLiteral("%1; außerdem konnte die Markdown-Datei nicht zurückgesetzt werden: %2")
+                  .arg(message, restore.errorString());
         return false;
     }
     if (targetPath != current->relativePath)
