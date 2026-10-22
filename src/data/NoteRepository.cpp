@@ -548,6 +548,10 @@ namespace {
 Note parseMarkdownFile(const QString &text, const QString &fallbackId,
                        const QString &fallbackTitle, const QString &relativePath)
 {
+    static const QRegularExpression divider(QStringLiteral("(?:^|\\n)---[ \\t]*(?:\\r?\\n|$)"));
+    static const QRegularExpression idPattern(QStringLiteral("(?m)^id:\\s*([^\\r\\n]+)"));
+    static const QRegularExpression tagsPattern(QStringLiteral("(?m)^tags:\\s*(\\[[^\\r\\n]*\\])"));
+    static const QRegularExpression headingPattern(QStringLiteral("(?m)^#\\s+(.+?)\\s*$"));
     Note result;
     result.id = fallbackId;
     result.title = fallbackTitle;
@@ -555,20 +559,17 @@ Note parseMarkdownFile(const QString &text, const QString &fallbackId,
 
     QString body = text;
     if (body.startsWith(QStringLiteral("---"))) {
-        const QRegularExpression divider(QStringLiteral("(?:^|\\n)---[ \\t]*(?:\\r?\\n|$)"));
         const auto match = divider.match(body, 3);
         if (match.hasMatch()) {
             result.frontMatter = body.left(match.capturedEnd());
             const QString metadata = body.mid(3, match.capturedStart() - 3);
-            const auto idMatch = QRegularExpression(QStringLiteral("(?m)^id:\\s*([^\\r\\n]+)"))
-                                     .match(metadata);
+            const auto idMatch = idPattern.match(metadata);
             if (idMatch.hasMatch()) {
                 const QUuid parsedId(idMatch.captured(1).trimmed());
                 if (!parsedId.isNull())
                     result.id = parsedId.toString(QUuid::WithoutBraces);
             }
-            const auto tagsMatch = QRegularExpression(QStringLiteral("(?m)^tags:\\s*(\\[[^\\r\\n]*\\])"))
-                                       .match(metadata);
+            const auto tagsMatch = tagsPattern.match(metadata);
             if (tagsMatch.hasMatch()) {
                 const QJsonDocument tagsDoc = QJsonDocument::fromJson(tagsMatch.captured(1).toUtf8());
                 for (const QJsonValue &tag : tagsDoc.array()) {
@@ -580,7 +581,7 @@ Note parseMarkdownFile(const QString &text, const QString &fallbackId,
         }
     }
 
-    const auto heading = QRegularExpression(QStringLiteral("(?m)^#\\s+(.+?)\\s*$")).match(body);
+    const auto heading = headingPattern.match(body);
     if (heading.hasMatch()) {
         result.title = heading.captured(1).trimmed();
         body.remove(heading.capturedStart(), heading.capturedLength());
@@ -742,7 +743,7 @@ NoteRepository::LinkAnalysis NoteRepository::analyzeLinks(const QString &noteId,
     for (const Note &item : allNotes)
         knownTitles.insert(item.title.simplified().toCaseFolded());
 
-    const QRegularExpression linkPattern(QStringLiteral("\\[\\[\\s*([^\\]]+?)\\s*\\]\\]"));
+    static const QRegularExpression linkPattern(QStringLiteral("\\[\\[\\s*([^\\]]+?)\\s*\\]\\]"));
     QSet<QString> outgoingSeen;
     const QString ownBody = parseMarkdownFile(target->content, target->id, target->title,
                                                target->relativePath).content;
