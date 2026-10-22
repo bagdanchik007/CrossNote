@@ -1345,6 +1345,13 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
                               .arg(indexError, restore.errorString()));
         return false;
     }
+    if (targetPath != current->relativePath
+        && !QFile::remove(QDir(m_impl->vault).filePath(current->relativePath))) {
+        m_impl->database.rollback();
+        QFile::remove(targetAbsolute);
+        if (error) *error = QStringLiteral("Die vorherige Notizdatei konnte nach der Umbenennung nicht entfernt werden.");
+        return false;
+    }
     if (!m_impl->database.commit()) {
         const QString message = m_impl->database.lastError().text();
         m_impl->database.rollback();
@@ -1358,9 +1365,6 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
                   .arg(message, restore.errorString());
         return false;
     }
-    if (targetPath != current->relativePath)
-        QFile::remove(QDir(m_impl->vault).filePath(current->relativePath));
-
     updateWatcherPaths();
     if (!conflictRelative.isEmpty())
         emit externalVersionBackedUp(conflictRelative);
