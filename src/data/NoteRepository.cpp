@@ -1230,6 +1230,7 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
 
     const QString cleanTitle = normalizedTitle.isEmpty() ? QStringLiteral("Unbenannte Notiz") : normalizedTitle;
     bool externalConflict = false;
+    QString conflictRelative;
     if (!expectedHash.isEmpty() && current->contentHash != expectedHash) {
         externalConflict = true;
         const QString conflictRoot = QDir(m_impl->vault).filePath(QStringLiteral(".conflicts"));
@@ -1237,8 +1238,11 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
             if (error) *error = QStringLiteral("Die externe Änderung kann nicht gesichert werden.");
             return false;
         }
-        const QString conflictName = QStringLiteral("%1-%2.md").arg(id, QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd-HHmmss-zzz")));
-        const QString conflictRelative = QStringLiteral(".conflicts/%1").arg(conflictName);
+        const QString timestamp = QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd-HHmmss-zzz"));
+        QString conflictName = QStringLiteral("%1-%2.md").arg(id, timestamp);
+        for (int suffix = 2; QFileInfo::exists(QDir(conflictRoot).filePath(conflictName)); ++suffix)
+            conflictName = QStringLiteral("%1-%2-%3.md").arg(id, timestamp).arg(suffix);
+        conflictRelative = QStringLiteral(".conflicts/%1").arg(conflictName);
         QFile original(QDir(m_impl->vault).filePath(current->relativePath));
         if (!original.open(QIODevice::ReadOnly)) {
             if (error) *error = original.errorString();
@@ -1251,7 +1255,6 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
             if (error) *error = backup.errorString();
             return false;
         }
-        emit externalVersionBackedUp(conflictRelative);
     }
     QString targetPath = current->relativePath;
     if (safeFileStem(cleanTitle) != QFileInfo(targetPath).completeBaseName()) {
@@ -1349,6 +1352,8 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
         QFile::remove(QDir(m_impl->vault).filePath(current->relativePath));
 
     updateWatcherPaths();
+    if (!conflictRelative.isEmpty())
+        emit externalVersionBackedUp(conflictRelative);
     emit notesChanged();
     return true;
 }
