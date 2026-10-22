@@ -980,16 +980,8 @@ void NoteRepository::updateWatcherPaths()
         paths.append(directory);
     }
 
-    QDirIterator files(m_impl->vault, {QStringLiteral("*.md")}, QDir::Files | QDir::NoSymLinks,
-                       QDirIterator::Subdirectories);
-    while (files.hasNext()) {
-        const QString file = files.next();
-        const QString relative = QDir(m_impl->vault).relativeFilePath(file).replace(QDir::separator(), u'/');
-        if (!relative.startsWith(QStringLiteral(".trash/"))
-            && !relative.startsWith(QStringLiteral(".backups/"))
-            && !relative.startsWith(QStringLiteral(".conflicts/")))
-            paths.append(file);
-    }
+    // Watch stable directories only. Atomic QSaveFile replacements can invalidate individual
+    // file watches while the platform watcher thread is still delivering the old file event.
     m_watcher.addPaths(paths);
 }
 namespace {
