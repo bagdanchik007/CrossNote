@@ -38,6 +38,7 @@ private slots:
     void preservesExternalVersionWhenSavingAfterConflict();
     void renamesNoteWithoutLeavingDuplicateMarkdown();
     void rejectsMarkdownSymlinksOutsideVault();
+    void keepsCurrentVaultWhenSwitchFails();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -656,6 +657,28 @@ void NoteCreationTest::rejectsMarkdownSymlinksOutsideVault()
 #else
     QSKIP("Der Symlink-Test wird auf Unix ausgeführt.");
 #endif
+}
+
+void NoteCreationTest::keepsCurrentVaultWhenSwitchFails()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QTemporaryDir invalidRoot(QDir::current().filePath(QStringLiteral("test-invalid-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    QVERIFY(invalidRoot.isValid());
+    QFile blockingFile(invalidRoot.filePath(QStringLiteral("not-a-directory")));
+    QVERIFY(blockingFile.open(QIODevice::WriteOnly));
+    blockingFile.close();
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Still available"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QVERIFY(!repository.openVault(blockingFile.fileName(), &error));
+    QVERIFY(!error.isEmpty());
+    QCOMPARE(repository.vaultPath(), QFileInfo(vault.path()).canonicalFilePath());
+    QVERIFY(repository.note(created->id, true, &error).has_value());
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
