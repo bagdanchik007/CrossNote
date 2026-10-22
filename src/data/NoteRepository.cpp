@@ -1600,8 +1600,9 @@ bool NoteRepository::moveToTrash(const QString &id, QString *error)
     lookup.finish();
     const QString trashPath = QStringLiteral(".trash/%1.md").arg(id);
     const QString absoluteOriginal = safeAbsolutePath(m_impl->vault, originalPath);
-    const QString absoluteTrash = QDir(m_impl->vault).filePath(trashPath);
-    if (absoluteOriginal.isEmpty() || !QDir().mkpath(QFileInfo(absoluteTrash).path())
+    const QString absoluteTrash = safeAbsolutePath(m_impl->vault, trashPath);
+    if (absoluteOriginal.isEmpty() || absoluteTrash.isEmpty()
+        || !QDir().mkpath(QFileInfo(absoluteTrash).path())
         || QFileInfo::exists(absoluteTrash) || !QFile::rename(absoluteOriginal, absoluteTrash)) {
         if (error) *error = QStringLiteral("Die Notiz kann nicht in den Papierkorb verschoben werden.");
         return false;
