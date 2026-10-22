@@ -33,6 +33,7 @@ private slots:
     void rejectsMutationsBeforeVaultOpen();
     void rejectsEmptyTitleLookup();
     void reportsMissingTrashFiles();
+    void rejectsNullSearchOutput();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -544,6 +545,19 @@ void NoteCreationTest::reportsMissingTrashFiles()
     QVERIFY(QFile::remove(vault.filePath(QStringLiteral(".trash/%1.md").arg(created->id))));
     QVERIFY(repository.trashedNotes(&error).isEmpty());
     QVERIFY(error.contains(QStringLiteral("kann nicht gelesen werden")));
+}
+
+void NoteCreationTest::rejectsNullSearchOutput()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    QVERIFY(!repository.searchIds(QStringLiteral("anything"), nullptr, &error));
+    QVERIFY(error.contains(QStringLiteral("kein Ziel")));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
