@@ -1066,10 +1066,8 @@ std::optional<Note> NoteRepository::createNote(const QString &title, const QStri
                                                 QString *error)
 {
     clearError(error);
-    if (m_impl->vault.isEmpty()) {
-        if (error) *error = QStringLiteral("Öffne zuerst einen Notizordner.");
+    if (!m_impl->requireOpen(error))
         return std::nullopt;
-    }
 
     const QString cleanTitle = title.simplified().isEmpty() ? QStringLiteral("Neue Notiz") : title.simplified();
     if (cleanTitle.size() > 160) {
@@ -1152,8 +1150,9 @@ std::optional<Note> NoteRepository::createNote(const QString &title, const QStri
 
 std::optional<Note> NoteRepository::dailyNote(const QDate &date, QString *error)
 {
-    if (error)
-        error->clear();
+    clearError(error);
+    if (!m_impl->requireOpen(error))
+        return std::nullopt;
     if (!date.isValid()) {
         if (error) *error = QStringLiteral("Das Datum für die Tagesnotiz ist ungültig.");
         return std::nullopt;
