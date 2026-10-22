@@ -1383,12 +1383,17 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
                               .arg(indexError, restore.errorString()));
         return false;
     }
-    if (targetPath != current->relativePath
-        && !QFile::remove(QDir(m_impl->vault).filePath(current->relativePath))) {
-        m_impl->database.rollback();
-        QFile::remove(targetAbsolute);
-        if (error) *error = QStringLiteral("Die vorherige Notizdatei konnte nach der Umbenennung nicht entfernt werden.");
-        return false;
+    const QString previousAbsolute = QDir(m_impl->vault).filePath(current->relativePath);
+    const bool renamed = targetPath != current->relativePath;
+    if (renamed) {
+        m_watcher.removePath(previousAbsolute);
+        if (!QFile::remove(previousAbsolute)) {
+            m_impl->database.rollback();
+            QFile::remove(targetAbsolute);
+            updateWatcherPaths();
+            if (error) *error = QStringLiteral("Die vorherige Notizdatei konnte nach der Umbenennung nicht entfernt werden.");
+            return false;
+        }
     }
     if (!m_impl->database.commit()) {
         const QString message = m_impl->database.lastError().text();
@@ -1396,8 +1401,9 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
         QSaveFile restore(QDir(m_impl->vault).filePath(current->relativePath));
         const bool restored = restore.open(QIODevice::WriteOnly)
             && restore.write(previousBytes) == previousBytes.size() && restore.commit();
-        if (targetPath != current->relativePath)
+        if (renamed)
             QFile::remove(targetAbsolute);
+        updateWatcherPaths();
         if (error) *error = restored ? message
             : QStringLiteral("%1; außerdem konnte die Markdown-Datei nicht zurückgesetzt werden: %2")
                   .arg(message, restore.errorString());
