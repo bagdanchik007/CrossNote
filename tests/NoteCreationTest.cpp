@@ -35,6 +35,7 @@ private slots:
     void reportsMissingTrashFiles();
     void rejectsNullSearchOutput();
     void tagChangesAdvanceModificationTime();
+    void preservesExternalVersionWhenSavingAfterConflict();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -577,6 +578,36 @@ void NoteCreationTest::tagChangesAdvanceModificationTime()
     const auto updated = repository.note(created->id, false, &error);
     QVERIFY2(updated.has_value(), qPrintable(error));
     QVERIFY(updated->updatedAt > created->updatedAt);
+}
+
+void NoteCreationTest::preservesExternalVersionWhenSavingAfterConflict()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Conflict handling"), QStringLiteral("local"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QFile external(vault.filePath(created->relativePath));
+    QVERIFY(external.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    const QByteArray changed = "---\nid: " + created->id.toUtf8()
+        + "\ntags: []\n---\n\n# Conflict handling\n\nexternal version\n";
+    QCOMPARE(external.write(changed), qint64(changed.size()));
+    external.close();
+    QSignalSpy conflictSpy(&repository, &NoteRepository::externalVersionBackedUp);
+    QVERIFY2(repository.saveNote(created->id, created->title, QStringLiteral("local edit"),
+                                 created->contentHash, &error), qPrintable(error));
+    QCOMPARE(conflictSpy.count(), 1);
+    const QString conflictPath = vault.filePath(conflictSpy.takeFirst().at(0).toString());
+    QFile backup(conflictPath);
+    QVERIFY(backup.open(QIODevice::ReadOnly));
+    QVERIFY(backup.readAll().contains("external version"));
+    const auto saved = repository.note(created->id, true, &error);
+    QVERIFY2(saved.has_value(), qPrintable(error));
+    QCOMPARE(saved->content, QStringLiteral("local edit"));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
