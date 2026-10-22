@@ -40,8 +40,16 @@ QString safeAbsolutePath(const QString &vault, const QString &relativePath)
 #endif
     if (!candidate.startsWith(prefix, sensitivity))
         return {};
-    const QString canonical = QDir::fromNativeSeparators(QFileInfo(candidate).canonicalFilePath());
-    if (!canonical.isEmpty() && canonical != root && !canonical.startsWith(prefix, sensitivity))
+    QString existingAncestor = candidate;
+    while (!QFileInfo::exists(existingAncestor)) {
+        const QString parent = QFileInfo(existingAncestor).path();
+        if (parent == existingAncestor)
+            return {};
+        existingAncestor = parent;
+    }
+    const QString canonical = QDir::fromNativeSeparators(QFileInfo(existingAncestor).canonicalFilePath());
+    if (canonical.isEmpty()
+        || (canonical != root && !canonical.startsWith(prefix, sensitivity)))
         return {};
     return candidate;
 }
