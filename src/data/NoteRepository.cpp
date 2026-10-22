@@ -117,6 +117,7 @@ public:
 
     bool open(const QString &path, QString *error)
     {
+        clearError(error);
         const QString cleaned = QDir::cleanPath(path.trimmed());
         if (cleaned.isEmpty()) {
             if (error) *error = QStringLiteral("Bitte wähle einen Notizordner aus.");
@@ -132,15 +133,15 @@ public:
             return false;
         }
 
-        vault = vaultInfo.canonicalFilePath();
-        if (vault.isEmpty())
-            vault = vaultInfo.absoluteFilePath();
-        if (!QDir(vault).mkpath(QStringLiteral(".trash"))) {
+        QString candidateVault = vaultInfo.canonicalFilePath();
+        if (candidateVault.isEmpty())
+            candidateVault = vaultInfo.absoluteFilePath();
+        if (!QDir(candidateVault).mkpath(QStringLiteral(".trash"))) {
             if (error) *error = QStringLiteral("Der Papierkorb im Notizordner kann nicht angelegt werden.");
             return false;
         }
 
-        const QByteArray hash = QCryptographicHash::hash(vault.toUtf8(), QCryptographicHash::Sha256).toHex();
+        const QByteArray hash = QCryptographicHash::hash(candidateVault.toUtf8(), QCryptographicHash::Sha256).toHex();
         const QString indexRoot = indexRootOverride.isEmpty()
             ? QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
                   .filePath(QStringLiteral("vault-index"))
@@ -150,39 +151,63 @@ public:
             return false;
         }
 
-        if (database.isValid()) {
-            database.close();
-            const QString oldName = connectionName;
-            database = QSqlDatabase();
-            QSqlDatabase::removeDatabase(oldName);
-        }
-        connectionName = QStringLiteral("crossnote-%1")
+        const QString candidateConnectionName = QStringLiteral("crossnote-%1")
                              .arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
-        database = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connectionName);
-        database.setDatabaseName(QDir(indexRoot).filePath(QString::fromLatin1(hash) + QStringLiteral(".sqlite")));
-        if (!database.open()) {
-            if (error) *error = database.lastError().text();
+        QSqlDatabase candidateDatabase = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), candidateConnectionName);
+        candidateDatabase.setDatabaseName(QDir(indexRoot).filePath(QString::fromLatin1(hash) + QStringLiteral(".sqlite")));
+        if (!candidateDatabase.open()) {
+            if (error) *error = candidateDatabase.lastError().text();
+            candidateDatabase = QSqlDatabase();
+            QSqlDatabase::removeDatabase(candidateConnectionName);
             return false;
         }
 
-        QSqlQuery pragma(database);
-        if (!pragma.exec(QStringLiteral("PRAGMA foreign_keys = ON"))) {
-            if (error) *error = sqlError(pragma);
+        QString setupError;
+        const bool databaseReady = [&] {
+            QSqlQuery pragma(candidateDatabase);
+            if (!pragma.exec(QStringLiteral("PRAGMA foreign_keys = ON"))
+                || !pragma.exec(QStringLiteral("PRAGMA busy_timeout = 5000"))) {
+                setupError = sqlError(pragma);
+                return false;
+            }
+            if (!pragma.exec(QStringLiteral("PRAGMA journal_mode = WAL")) || !pragma.next()
+                || pragma.value(0).toString().compare(QStringLiteral("wal"), Qt::CaseInsensitive) != 0) {
+                setupError = pragma.lastError().text().isEmpty()
+                    ? QStringLiteral("Der lokale Datenbankmodus WAL konnte nicht aktiviert werden.")
+                    : sqlError(pragma);
+                return false;
+            }
+            return true;
+        }();
+        if (!databaseReady) {
+            if (error) *error = setupError;
+            candidateDatabase.close();
+            candidateDatabase = QSqlDatabase();
+            QSqlDatabase::removeDatabase(candidateConnectionName);
             return false;
         }
-        if (!pragma.exec(QStringLiteral("PRAGMA busy_timeout = 5000"))) {
-            if (error) *error = sqlError(pragma);
+
+        const QString previousVault = vault;
+        const QString previousConnectionName = connectionName;
+        QSqlDatabase previousDatabase = database;
+        database = candidateDatabase;
+        candidateDatabase = QSqlDatabase();
+        connectionName = candidateConnectionName;
+        vault = candidateVault;
+        if (!createSchema(error)) {
+            database.close();
+            database = previousDatabase;
+            previousDatabase = QSqlDatabase();
+            connectionName = previousConnectionName;
+            vault = previousVault;
+            QSqlDatabase::removeDatabase(candidateConnectionName);
             return false;
         }
-        if (!pragma.exec(QStringLiteral("PRAGMA journal_mode = WAL")) || !pragma.next()
-            || pragma.value(0).toString().compare(QStringLiteral("wal"), Qt::CaseInsensitive) != 0) {
-            if (error) *error = pragma.lastError().text().isEmpty()
-                ? QStringLiteral("Der lokale Datenbankmodus WAL konnte nicht aktiviert werden.")
-                : sqlError(pragma);
-            return false;
+        if (previousDatabase.isValid()) {
+            previousDatabase.close();
+            previousDatabase = QSqlDatabase();
+            QSqlDatabase::removeDatabase(previousConnectionName);
         }
-        if (!createSchema(error))
-            return false;
         return true;
     }
 
