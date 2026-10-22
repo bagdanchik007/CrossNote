@@ -1440,8 +1440,9 @@ bool NoteRepository::setTags(const QString &id, const QStringList &tags, QString
         return false;
     }
     QSqlQuery query(m_impl->database);
-    query.prepare(QStringLiteral("UPDATE notes SET tags = ? WHERE id = ?"));
+    query.prepare(QStringLiteral("UPDATE notes SET tags = ?, updated_at = ? WHERE id = ?"));
     query.addBindValue(serializedTags);
+    query.addBindValue(QDateTime::currentDateTimeUtc().toMSecsSinceEpoch());
     query.addBindValue(id);
     if (!query.exec()) {
         m_impl->database.rollback();

@@ -34,6 +34,7 @@ private slots:
     void rejectsEmptyTitleLookup();
     void reportsMissingTrashFiles();
     void rejectsNullSearchOutput();
+    void tagChangesAdvanceModificationTime();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -558,6 +559,24 @@ void NoteCreationTest::rejectsNullSearchOutput()
     QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
     QVERIFY(!repository.searchIds(QStringLiteral("anything"), nullptr, &error));
     QVERIFY(error.contains(QStringLiteral("kein Ziel")));
+}
+
+void NoteCreationTest::tagChangesAdvanceModificationTime()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Tag timestamp"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QTest::qWait(2);
+    QVERIFY2(repository.setTags(created->id, {QStringLiteral("important")}, &error), qPrintable(error));
+    const auto updated = repository.note(created->id, false, &error);
+    QVERIFY2(updated.has_value(), qPrintable(error));
+    QVERIFY(updated->updatedAt > created->updatedAt);
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
