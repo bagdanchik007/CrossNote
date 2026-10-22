@@ -960,10 +960,6 @@ bool NoteRepository::refresh(QString *error)
 }
 void NoteRepository::updateWatcherPaths()
 {
-    QStringList previous = m_watcher.files();
-    previous.append(m_watcher.directories());
-    if (!previous.isEmpty())
-        m_watcher.removePaths(previous);
     if (m_impl->vault.isEmpty())
         return;
 
@@ -982,7 +978,19 @@ void NoteRepository::updateWatcherPaths()
 
     // Watch stable directories only. Atomic QSaveFile replacements can invalidate individual
     // file watches while the platform watcher thread is still delivering the old file event.
-    m_watcher.addPaths(paths);
+    const QSet<QString> desired(paths.cbegin(), paths.cend());
+    QStringList stale;
+    const QStringList current = m_watcher.directories();
+    for (const QString &directory : current) {
+        if (!desired.contains(directory))
+            stale.append(directory);
+    }
+    if (!stale.isEmpty())
+        m_watcher.removePaths(stale);
+    for (const QString &directory : paths) {
+        if (!current.contains(directory))
+            m_watcher.addPath(directory);
+    }
 }
 namespace {
 
