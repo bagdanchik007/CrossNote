@@ -1306,12 +1306,14 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
 
     if (!m_impl->database.transaction()) {
         QSaveFile restore(QDir(m_impl->vault).filePath(current->relativePath));
-        restore.open(QIODevice::WriteOnly);
-        restore.write(previousBytes);
-        restore.commit();
+        const bool restored = restore.open(QIODevice::WriteOnly)
+            && restore.write(previousBytes) == previousBytes.size() && restore.commit();
         if (targetPath != current->relativePath)
             QFile::remove(targetAbsolute);
-        if (error) *error = m_impl->database.lastError().text();
+        const QString message = m_impl->database.lastError().text();
+        if (error) *error = restored ? message
+            : QStringLiteral("%1; außerdem konnte die Markdown-Datei nicht zurückgesetzt werden: %2")
+                  .arg(message, restore.errorString());
         return false;
     }
 
