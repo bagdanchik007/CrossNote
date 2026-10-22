@@ -36,6 +36,7 @@ private slots:
     void rejectsNullSearchOutput();
     void tagChangesAdvanceModificationTime();
     void preservesExternalVersionWhenSavingAfterConflict();
+    void renamesNoteWithoutLeavingDuplicateMarkdown();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -608,6 +609,28 @@ void NoteCreationTest::preservesExternalVersionWhenSavingAfterConflict()
     const auto saved = repository.note(created->id, true, &error);
     QVERIFY2(saved.has_value(), qPrintable(error));
     QCOMPARE(saved->content, QStringLiteral("local edit"));
+}
+
+void NoteCreationTest::renamesNoteWithoutLeavingDuplicateMarkdown()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Before rename"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QVERIFY2(repository.saveNote(created->id, QStringLiteral("After rename"), QStringLiteral("body"),
+                                 created->contentHash, &error), qPrintable(error));
+    QVERIFY(!QFileInfo::exists(vault.filePath(QStringLiteral("Before rename.md"))));
+    QVERIFY(QFileInfo::exists(vault.filePath(QStringLiteral("After rename.md"))));
+    QVERIFY2(repository.refresh(&error), qPrintable(error));
+    QCOMPARE(repository.notes(&error).size(), 1);
+    const auto reopened = repository.note(created->id, true, &error);
+    QVERIFY2(reopened.has_value(), qPrintable(error));
+    QCOMPARE(reopened->relativePath, QStringLiteral("After rename.md"));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
