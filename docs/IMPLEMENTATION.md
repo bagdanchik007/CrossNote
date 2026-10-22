@@ -48,3 +48,12 @@ Frontmatter-Felder, die CrossNote nicht versteht, bleiben beim Speichern erhalte
 - Markdown-Dateien werden als UTF-8-Bytes mit identischen LF-Zeilenenden auf allen Plattformen geschrieben.
 - `NoteListModel` liefert Daten ausschließlich für gültige Indizes seiner eigenen Instanz und seiner einzigen Spalte; bei gleicher Änderungszeit ist die Reihenfolge über die Notiz-ID deterministisch.
 - Neue SQLite-Versionen ergänzen Metadaten mit Migrationen, die nach einem unterbrochenen Schritt sicher erneut gestartet werden können.
+
+### Datei- und Indexwiederherstellung
+
+- Ein Vault-Wechsel wird auf einer separaten SQLite-Verbindung vorbereitet. Der aktuelle Vault bleibt nutzbar, wenn Öffnen oder Migration des nächsten Vaults fehlschlägt.
+- Ein Notizspeichern schreibt Markdown atomar und aktualisiert Datenbankzeile sowie FTS5-Eintrag in einer SQL-Transaktion. Bei Index- oder Commitfehlern werden die vorherigen Markdown-Bytes wiederhergestellt.
+- Beim Umbenennen wird der alte Pfad vor dem Commit entfernt. Scheitert der Datenbank-Commit, wird die vorherige Datei zurückgeschrieben und das neue Ziel entfernt.
+- Pfade werden über ihren nächsten existierenden Vorfahren geprüft. Dadurch werden auch noch nicht angelegte Unterpfade abgewiesen, deren Elternsymbol-Link aus dem Vault herausführt.
+- Konfliktkopien erhalten eindeutige Zeitstempel-Namen und werden erst nach erfolgreichem Speichern und Index-Commit gemeldet.
+- Fehlende und unvollständige Lesevorgänge im Vault, Papierkorb, Export, Konflikt- und Wiederherstellungspfad werden als Fehler gemeldet statt unvollständigen Text zu indexieren.
