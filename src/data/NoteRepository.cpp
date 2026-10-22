@@ -1601,7 +1601,8 @@ bool NoteRepository::moveToTrash(const QString &id, QString *error)
     const QString trashPath = QStringLiteral(".trash/%1.md").arg(id);
     const QString absoluteOriginal = safeAbsolutePath(m_impl->vault, originalPath);
     const QString absoluteTrash = QDir(m_impl->vault).filePath(trashPath);
-    if (absoluteOriginal.isEmpty() || QFileInfo::exists(absoluteTrash) || !QFile::rename(absoluteOriginal, absoluteTrash)) {
+    if (absoluteOriginal.isEmpty() || !QDir().mkpath(QFileInfo(absoluteTrash).path())
+        || QFileInfo::exists(absoluteTrash) || !QFile::rename(absoluteOriginal, absoluteTrash)) {
         if (error) *error = QStringLiteral("Die Notiz kann nicht in den Papierkorb verschoben werden.");
         return false;
     }
@@ -1676,6 +1677,7 @@ bool NoteRepository::restoreFromTrash(const QString &id, QString *error)
     const QString absoluteTrash = safeAbsolutePath(m_impl->vault, trashPath);
     const QString absoluteRestored = safeAbsolutePath(m_impl->vault, restoredPath);
     if (absoluteTrash.isEmpty() || absoluteRestored.isEmpty()
+        || !QDir().mkpath(QFileInfo(absoluteRestored).path())
         || !QFile::rename(absoluteTrash, absoluteRestored)) {
         if (error) *error = QStringLiteral("Die Notiz konnte nicht wiederhergestellt werden.");
         return false;
