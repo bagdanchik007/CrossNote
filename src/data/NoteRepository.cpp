@@ -1291,6 +1291,10 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
             return false;
         }
         const QByteArray externalBytes = original.readAll();
+        if (original.error() != QFileDevice::NoError) {
+            if (error) *error = original.errorString();
+            return false;
+        }
         original.close();
         QSaveFile backup(QDir(m_impl->vault).filePath(conflictRelative));
         if (!backup.open(QIODevice::WriteOnly) || backup.write(externalBytes) != externalBytes.size() || !backup.commit()) {
@@ -1489,6 +1493,10 @@ bool NoteRepository::setTags(const QString &id, const QStringList &tags, QString
         return false;
     }
     const QByteArray previousBytes = source.readAll();
+    if (source.error() != QFileDevice::NoError) {
+        if (error) *error = source.errorString();
+        return false;
+    }
     source.close();
     if (QCryptographicHash::hash(previousBytes, QCryptographicHash::Sha256) != current->contentHash) {
         if (error) *error = QStringLiteral("Die Notiz wurde extern geändert. Aktualisiere den Vault und versuche es erneut.");
@@ -1690,9 +1698,21 @@ bool NoteRepository::restoreFromTrash(const QString &id, QString *error)
     insert.addBindValue(favorite);
     insert.addBindValue(tags);
     QFile restoredFile(absoluteRestored);
-    QString restoredContent;
-    if (restoredFile.open(QIODevice::ReadOnly))
-        restoredContent = QString::fromUtf8(restoredFile.readAll());
+    if (!restoredFile.open(QIODevice::ReadOnly)) {
+        QFile::rename(absoluteRestored, absoluteTrash);
+        m_impl->database.rollback();
+        if (error) *error = restoredFile.errorString();
+        return false;
+    }
+    const QByteArray restoredBytes = restoredFile.readAll();
+    if (restoredFile.error() != QFileDevice::NoError) {
+        QFile::rename(absoluteRestored, absoluteTrash);
+        m_impl->database.rollback();
+        if (error) *error = restoredFile.errorString();
+        return false;
+    }
+    const QString restoredContent = parseMarkdownFile(QString::fromUtf8(restoredBytes), id, title,
+                                                       restoredPath).content;
     QString indexError;
     const bool indexUpdated = m_impl->replaceSearchDocument(id, title, restoredContent,
                                                              tags.toString(), &indexError);
