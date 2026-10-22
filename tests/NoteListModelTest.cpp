@@ -1,6 +1,7 @@
 #include "presentation/NoteListModel.h"
 
 #include <QDateTime>
+#include <QSignalSpy>
 #include <QtTest>
 
 using namespace CrossNote;
@@ -18,6 +19,8 @@ private slots:
     void appliesFullTextIdsAlongsideLocalFilters();
     void ignoresUnknownSectionsAndNormalizesKnownSections();
     void createsReadableMarkdownPreviews();
+    void skipsResetForIdenticalSearchIds();
+    void sortsRecentNotesByOpenTime();
 
 private:
     static Note note(QString id, QString title, QDateTime updatedAt);
@@ -152,6 +155,33 @@ void NoteListModelTest::createsReadableMarkdownPreviews()
     QVERIFY(preview.contains(QStringLiteral("Useful")));
     QVERIFY(!preview.contains(QStringLiteral("https://example.test")));
     QVERIFY(!preview.contains(QStringLiteral("image.png")));
+}
+
+void NoteListModelTest::skipsResetForIdenticalSearchIds()
+{
+    NoteListModel model;
+    model.setNotes({note(QStringLiteral("one"), QStringLiteral("One"), QDateTime::currentDateTimeUtc())});
+    QSignalSpy countSpy(&model, &NoteListModel::countChanged);
+    model.setSearchResultIds({QStringLiteral("one")}, true);
+    QCOMPARE(countSpy.count(), 1);
+    model.setSearchResultIds({QStringLiteral("one")}, true);
+    QCOMPARE(countSpy.count(), 1);
+    model.setSearchResultIds({}, false);
+    QCOMPARE(countSpy.count(), 2);
+}
+
+void NoteListModelTest::sortsRecentNotesByOpenTime()
+{
+    NoteListModel model;
+    const QDateTime now = QDateTime::currentDateTimeUtc();
+    Note older = note(QStringLiteral("older"), QStringLiteral("Older"), now);
+    older.lastOpenedAt = now.addSecs(-30);
+    Note newer = note(QStringLiteral("newer"), QStringLiteral("Newer"), now.addDays(-1));
+    newer.lastOpenedAt = now;
+    model.setNotes({older, newer});
+    model.setSection(QStringLiteral("recent"));
+    QCOMPARE(model.data(model.index(0, 0), NoteListModel::IdRole).toString(), QStringLiteral("newer"));
+    QCOMPARE(model.data(model.index(1, 0), NoteListModel::IdRole).toString(), QStringLiteral("older"));
 }
 
 QTEST_GUILESS_MAIN(NoteListModelTest)
