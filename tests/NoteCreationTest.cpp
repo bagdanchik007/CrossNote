@@ -632,12 +632,12 @@ void NoteCreationTest::renamesNoteWithoutLeavingDuplicateMarkdown()
     QVERIFY2(repository.saveNote(created->id, QStringLiteral("After rename"), QStringLiteral("body"),
                                  created->contentHash, &error), qPrintable(error));
     QVERIFY(!QFileInfo::exists(vault.filePath(QStringLiteral("Before rename.md"))));
-    QVERIFY(QFileInfo::exists(vault.filePath(QStringLiteral("After rename.md"))));
+    QVERIFY(QFileInfo::exists(vault.filePath(QStringLiteral("After-rename.md"))));
     QVERIFY2(repository.refresh(&error), qPrintable(error));
     QCOMPARE(repository.notes(&error).size(), 1);
     const auto reopened = repository.note(created->id, true, &error);
     QVERIFY2(reopened.has_value(), qPrintable(error));
-    QCOMPARE(reopened->relativePath, QStringLiteral("After rename.md"));
+    QCOMPARE(reopened->relativePath, QStringLiteral("After-rename.md"));
 }
 
 void NoteCreationTest::rejectsMarkdownSymlinksOutsideVault()
