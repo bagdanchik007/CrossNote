@@ -1410,16 +1410,27 @@ bool NoteRepository::setFavorite(const QString &id, bool favorite, QString *erro
     if (!m_impl->requireOpen(error))
         return false;
     QSqlQuery query(m_impl->database);
-    query.prepare(QStringLiteral("UPDATE notes SET favorite = ? WHERE id = ?"));
+    query.prepare(QStringLiteral("UPDATE notes SET favorite = ? WHERE id = ? AND favorite <> ?"));
     query.addBindValue(favorite);
     query.addBindValue(id);
+    query.addBindValue(favorite);
     if (!query.exec()) {
         if (error) *error = sqlError(query);
         return false;
     }
     if (query.numRowsAffected() != 1) {
-        if (error) *error = QStringLiteral("Die Notiz wurde nicht gefunden.");
-        return false;
+        QSqlQuery exists(m_impl->database);
+        exists.prepare(QStringLiteral("SELECT 1 FROM notes WHERE id = ?"));
+        exists.addBindValue(id);
+        if (!exists.exec()) {
+            if (error) *error = sqlError(exists);
+            return false;
+        }
+        if (!exists.next()) {
+            if (error) *error = QStringLiteral("Die Notiz wurde nicht gefunden.");
+            return false;
+        }
+        return true;
     }
     emit notesChanged();
     return true;
@@ -1431,16 +1442,27 @@ bool NoteRepository::setArchived(const QString &id, bool archived, QString *erro
     if (!m_impl->requireOpen(error))
         return false;
     QSqlQuery query(m_impl->database);
-    query.prepare(QStringLiteral("UPDATE notes SET archived = ? WHERE id = ?"));
+    query.prepare(QStringLiteral("UPDATE notes SET archived = ? WHERE id = ? AND archived <> ?"));
     query.addBindValue(archived);
     query.addBindValue(id);
+    query.addBindValue(archived);
     if (!query.exec()) {
         if (error) *error = sqlError(query);
         return false;
     }
     if (query.numRowsAffected() != 1) {
-        if (error) *error = QStringLiteral("Die Notiz wurde nicht gefunden.");
-        return false;
+        QSqlQuery exists(m_impl->database);
+        exists.prepare(QStringLiteral("SELECT 1 FROM notes WHERE id = ?"));
+        exists.addBindValue(id);
+        if (!exists.exec()) {
+            if (error) *error = sqlError(exists);
+            return false;
+        }
+        if (!exists.next()) {
+            if (error) *error = QStringLiteral("Die Notiz wurde nicht gefunden.");
+            return false;
+        }
+        return true;
     }
     emit notesChanged();
     return true;
