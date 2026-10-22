@@ -39,6 +39,7 @@ private slots:
     void renamesNoteWithoutLeavingDuplicateMarkdown();
     void rejectsMarkdownSymlinksOutsideVault();
     void keepsCurrentVaultWhenSwitchFails();
+    void unchangedFlagsDoNotEmitReloads();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -679,6 +680,25 @@ void NoteCreationTest::keepsCurrentVaultWhenSwitchFails()
     QVERIFY(!error.isEmpty());
     QCOMPARE(repository.vaultPath(), QFileInfo(vault.path()).canonicalFilePath());
     QVERIFY(repository.note(created->id, true, &error).has_value());
+}
+
+void NoteCreationTest::unchangedFlagsDoNotEmitReloads()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Flags"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QSignalSpy changedSpy(&repository, &NoteRepository::notesChanged);
+    QVERIFY2(repository.setFavorite(created->id, false, &error), qPrintable(error));
+    QVERIFY2(repository.setArchived(created->id, false, &error), qPrintable(error));
+    QCOMPARE(changedSpy.count(), 0);
+    QVERIFY(!repository.setFavorite(QStringLiteral("missing"), true, &error));
+    QVERIFY(!error.isEmpty());
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
