@@ -651,6 +651,10 @@ std::optional<Note> NoteRepository::note(const QString &id, bool includeContent,
             return std::nullopt;
         }
         const QByteArray fileBytes = file.readAll();
+        if (file.error() != QFileDevice::NoError) {
+            if (error) *error = file.errorString();
+            return std::nullopt;
+        }
         const Note parsed = parseMarkdownFile(QString::fromUtf8(fileBytes), id,
                                               result.title, result.relativePath);
         result.content = parsed.content;
