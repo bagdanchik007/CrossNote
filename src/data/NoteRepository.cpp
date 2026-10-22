@@ -487,9 +487,23 @@ QVector<Note> NoteRepository::trashedNotes(QString *error) const
         item.tags = parseTags(query.value(7).toString());
         const QString absolute = safeAbsolutePath(m_impl->vault, item.relativePath);
         QFile file(absolute);
-        if (absolute.isEmpty() || !file.open(QIODevice::ReadOnly))
-            continue;
+        if (absolute.isEmpty() || !file.open(QIODevice::ReadOnly)) {
+            query.finish();
+            result.clear();
+            if (error) *error = absolute.isEmpty()
+                ? QStringLiteral("Der Papierkorbpfad liegt außerhalb des Vaults.")
+                : QStringLiteral("Papierkorbdatei %1 kann nicht gelesen werden: %2")
+                      .arg(item.relativePath, file.errorString());
+            return result;
+        }
         const QByteArray bytes = file.readAll();
+        if (file.error() != QFileDevice::NoError) {
+            query.finish();
+            result.clear();
+            if (error) *error = QStringLiteral("Papierkorbdatei %1 konnte nicht vollständig gelesen werden: %2")
+                .arg(item.relativePath, file.errorString());
+            return result;
+        }
         item.content = QString::fromUtf8(bytes);
         item.contentHash = QCryptographicHash::hash(bytes, QCryptographicHash::Sha256);
         result.append(std::move(item));

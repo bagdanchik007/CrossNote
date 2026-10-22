@@ -32,6 +32,7 @@ private slots:
     void reportsMissingFilesInsteadOfSilentlyHidingNotes();
     void rejectsMutationsBeforeVaultOpen();
     void rejectsEmptyTitleLookup();
+    void reportsMissingTrashFiles();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -526,6 +527,23 @@ void NoteCreationTest::rejectsEmptyTitleLookup()
     QVERIFY2(created.has_value(), qPrintable(error));
     QVERIFY(!repository.noteIdForTitle(QStringLiteral("   "), &error));
     QVERIFY(error.isEmpty());
+}
+
+void NoteCreationTest::reportsMissingTrashFiles()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Trash integrity"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QVERIFY2(repository.moveToTrash(created->id, &error), qPrintable(error));
+    QVERIFY(QFile::remove(vault.filePath(QStringLiteral(".trash/%1.md").arg(created->id))));
+    QVERIFY(repository.trashedNotes(&error).isEmpty());
+    QVERIFY(error.contains(QStringLiteral("kann nicht gelesen werden")));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
