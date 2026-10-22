@@ -37,6 +37,7 @@ private slots:
     void tagChangesAdvanceModificationTime();
     void preservesExternalVersionWhenSavingAfterConflict();
     void renamesNoteWithoutLeavingDuplicateMarkdown();
+    void rejectsMarkdownSymlinksOutsideVault();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -631,6 +632,30 @@ void NoteCreationTest::renamesNoteWithoutLeavingDuplicateMarkdown()
     const auto reopened = repository.note(created->id, true, &error);
     QVERIFY2(reopened.has_value(), qPrintable(error));
     QCOMPARE(reopened->relativePath, QStringLiteral("After rename.md"));
+}
+
+void NoteCreationTest::rejectsMarkdownSymlinksOutsideVault()
+{
+#ifdef Q_OS_UNIX
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QTemporaryDir outside(QDir::current().filePath(QStringLiteral("test-outside-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    QVERIFY(outside.isValid());
+    QFile external(outside.filePath(QStringLiteral("external.md")));
+    QVERIFY(external.open(QIODevice::WriteOnly));
+    external.write("# Outside\n");
+    external.close();
+    QVERIFY(QFile::link(external.fileName(), vault.filePath(QStringLiteral("linked.md"))));
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    QVERIFY(!repository.refresh(&error));
+    QVERIFY(error.contains(QStringLiteral("außerhalb")));
+#else
+    QSKIP("Der Symlink-Test wird auf Unix ausgeführt.");
+#endif
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
