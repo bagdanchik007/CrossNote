@@ -42,6 +42,7 @@ private slots:
     void unchangedFlagsDoNotEmitReloads();
     void rebuildsSearchIndexFromMarkdownFiles();
     void importsNotesFromNestedDirectories();
+    void rejectsInvalidDailyNoteDates();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -751,6 +752,20 @@ void NoteCreationTest::importsNotesFromNestedDirectories()
     QCOMPARE(imported->relativePath, QStringLiteral("Projects/Design/Overview.md"));
     QVERIFY(imported->tags.contains(QStringLiteral("design")));
     QVERIFY(imported->content.contains(QStringLiteral("Nested content")));
+}
+
+void NoteCreationTest::rejectsInvalidDailyNoteDates()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    QVERIFY(!repository.dailyNote(QDate(), &error));
+    QVERIFY(error.contains(QStringLiteral("ungültig")));
+    QCOMPARE(repository.notes(&error).size(), 0);
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
