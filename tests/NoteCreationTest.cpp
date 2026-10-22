@@ -30,6 +30,8 @@ private slots:
     void archiveStateSurvivesRepositoryReopen();
     void clearsStaleErrorOutputsOnSuccess();
     void reportsMissingFilesInsteadOfSilentlyHidingNotes();
+    void rejectsMutationsBeforeVaultOpen();
+    void rejectsEmptyTitleLookup();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -489,6 +491,41 @@ void NoteCreationTest::reportsMissingFilesInsteadOfSilentlyHidingNotes()
     QVERIFY(visible.isEmpty());
     QVERIFY(error.contains(QStringLiteral("Temporarily missing"), Qt::CaseInsensitive)
             || error.contains(created->relativePath));
+}
+
+void NoteCreationTest::rejectsMutationsBeforeVaultOpen()
+{
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY(!repository.setFavorite(QStringLiteral("id"), true, &error));
+    QVERIFY(!error.isEmpty());
+    QVERIFY(!repository.setArchived(QStringLiteral("id"), true, &error));
+    QVERIFY(!error.isEmpty());
+    QVERIFY(!repository.markOpened(QStringLiteral("id"), &error));
+    QVERIFY(!error.isEmpty());
+    QVERIFY(!repository.moveToTrash(QStringLiteral("id"), &error));
+    QVERIFY(!error.isEmpty());
+    QVERIFY(!repository.restoreFromTrash(QStringLiteral("id"), &error));
+    QVERIFY(!error.isEmpty());
+    QVERIFY(!repository.rebuildSearchIndex(&error));
+    QVERIFY(!error.isEmpty());
+}
+
+void NoteCreationTest::rejectsEmptyTitleLookup()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Not empty"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QVERIFY(!repository.noteIdForTitle(QStringLiteral("   "), &error));
+    QVERIFY(error.isEmpty());
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)

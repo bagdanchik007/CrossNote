@@ -547,6 +547,8 @@ Note parseMarkdownFile(const QString &text, const QString &fallbackId,
 bool NoteRepository::rebuildSearchIndex(QString *error)
 {
     clearError(error);
+    if (!m_impl->requireOpen(error))
+        return false;
     if (!m_impl->database.transaction()) {
         if (error) *error = m_impl->database.lastError().text();
         return false;
@@ -648,6 +650,8 @@ std::optional<QString> NoteRepository::noteIdForTitle(const QString &title, QStr
 {
     clearError(error);
     if (!m_impl->requireOpen(error))
+        return std::nullopt;
+    if (title.trimmed().isEmpty())
         return std::nullopt;
     QSqlQuery query(m_impl->database);
     query.prepare(QStringLiteral("SELECT id FROM notes WHERE title = ? COLLATE NOCASE "
@@ -1302,6 +1306,8 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
 bool NoteRepository::setFavorite(const QString &id, bool favorite, QString *error)
 {
     clearError(error);
+    if (!m_impl->requireOpen(error))
+        return false;
     QSqlQuery query(m_impl->database);
     query.prepare(QStringLiteral("UPDATE notes SET favorite = ? WHERE id = ?"));
     query.addBindValue(favorite);
@@ -1321,6 +1327,8 @@ bool NoteRepository::setFavorite(const QString &id, bool favorite, QString *erro
 bool NoteRepository::setArchived(const QString &id, bool archived, QString *error)
 {
     clearError(error);
+    if (!m_impl->requireOpen(error))
+        return false;
     QSqlQuery query(m_impl->database);
     query.prepare(QStringLiteral("UPDATE notes SET archived = ? WHERE id = ?"));
     query.addBindValue(archived);
@@ -1418,6 +1426,8 @@ bool NoteRepository::setTags(const QString &id, const QStringList &tags, QString
 bool NoteRepository::markOpened(const QString &id, QString *error)
 {
     clearError(error);
+    if (!m_impl->requireOpen(error))
+        return false;
     QSqlQuery query(m_impl->database);
     query.prepare(QStringLiteral("UPDATE notes SET last_opened_at = ? WHERE id = ?"));
     query.addBindValue(QDateTime::currentDateTimeUtc().toMSecsSinceEpoch());
@@ -1436,6 +1446,8 @@ bool NoteRepository::markOpened(const QString &id, QString *error)
 bool NoteRepository::moveToTrash(const QString &id, QString *error)
 {
     clearError(error);
+    if (!m_impl->requireOpen(error))
+        return false;
     QSqlQuery lookup(m_impl->database);
     lookup.prepare(QStringLiteral("SELECT title, relative_path, created_at, updated_at, last_opened_at, favorite, tags FROM notes WHERE id = ?"));
     lookup.addBindValue(id);
@@ -1500,6 +1512,8 @@ bool NoteRepository::moveToTrash(const QString &id, QString *error)
 bool NoteRepository::restoreFromTrash(const QString &id, QString *error)
 {
     clearError(error);
+    if (!m_impl->requireOpen(error))
+        return false;
     QSqlQuery lookup(m_impl->database);
     lookup.prepare(QStringLiteral("SELECT title, relative_path, trash_path, created_at, updated_at, last_opened_at, favorite, tags FROM trashed_notes WHERE id = ?"));
     lookup.addBindValue(id);
