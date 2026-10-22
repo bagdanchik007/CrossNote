@@ -41,6 +41,7 @@ private slots:
     void keepsCurrentVaultWhenSwitchFails();
     void unchangedFlagsDoNotEmitReloads();
     void rebuildsSearchIndexFromMarkdownFiles();
+    void importsNotesFromNestedDirectories();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -725,6 +726,31 @@ void NoteCreationTest::rebuildsSearchIndexFromMarkdownFiles()
     QVERIFY(ids.contains(created->id));
     QVERIFY2(repository.searchIds(QStringLiteral("oldtoken"), &ids, &error), qPrintable(error));
     QVERIFY(!ids.contains(created->id));
+}
+
+void NoteCreationTest::importsNotesFromNestedDirectories()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    QVERIFY(QDir(vault.path()).mkpath(QStringLiteral("Projects/Design")));
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    QFile file(vault.filePath(QStringLiteral("Projects/Design/Overview.md")));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    const QByteArray markdown = "---\nid: 2d7dedaa-3080-4d89-a489-18090a990d7c\ntags: [\"design\"]\n---\n\n# Overview\n\nNested content.\n";
+    QCOMPARE(file.write(markdown), qint64(markdown.size()));
+    file.close();
+    QVERIFY2(repository.refresh(&error), qPrintable(error));
+    const auto id = repository.noteIdForTitle(QStringLiteral("Overview"), &error);
+    QVERIFY2(id.has_value(), qPrintable(error));
+    const auto imported = repository.note(*id, true, &error);
+    QVERIFY2(imported.has_value(), qPrintable(error));
+    QCOMPARE(imported->relativePath, QStringLiteral("Projects/Design/Overview.md"));
+    QVERIFY(imported->tags.contains(QStringLiteral("design")));
+    QVERIFY(imported->content.contains(QStringLiteral("Nested content")));
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
