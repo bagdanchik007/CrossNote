@@ -93,9 +93,10 @@ void NoteListModel::setNotes(QVector<Note> notes)
 
 void NoteListModel::setSearchResultIds(const QStringList &ids, bool active)
 {
-    m_searchResultIds = QSet<QString>(ids.begin(), ids.end());
-    if (m_searchResultsActive == active && !active)
+    const QSet<QString> normalized(ids.begin(), ids.end());
+    if (m_searchResultsActive == active && m_searchResultIds == normalized)
         return;
+    m_searchResultIds = normalized;
     m_searchResultsActive = active;
     setNotes(m_notes);
 }
@@ -138,15 +139,19 @@ void NoteListModel::setSection(const QString &section)
 
 QString NoteListModel::previewFor(const Note &note) const
 {
+    static const QRegularExpression frontMatterEnd(QStringLiteral("\\n---"));
+    static const QRegularExpression markdownLinks(QStringLiteral("!?\\[[^\\]]*\\]\\([^)]*\\)"));
+    static const QRegularExpression markdownDecorations(QStringLiteral("[`*_>#~]"));
+    static const QRegularExpression whitespace(QStringLiteral("\\s+"));
     QString text = note.content;
     if (text.startsWith(QStringLiteral("---"))) {
-        const qsizetype end = text.indexOf(QStringLiteral("\n---"), 3);
+        const qsizetype end = text.indexOf(frontMatterEnd, 3);
         if (end >= 0)
             text.remove(0, end + 4);
     }
-    text.remove(QRegularExpression(QStringLiteral("!?\\[[^\\]]*\\]\\([^)]*\\)")));
-    text.remove(QRegularExpression(QStringLiteral("[`*_>#~]")));
-    text.replace(QRegularExpression(QStringLiteral("\\s+")), QStringLiteral(" "));
+    text.remove(markdownLinks);
+    text.remove(markdownDecorations);
+    text.replace(whitespace, QStringLiteral(" "));
     return text.trimmed().left(140);
 }
 
