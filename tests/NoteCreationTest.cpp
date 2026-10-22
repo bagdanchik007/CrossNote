@@ -43,6 +43,7 @@ private slots:
     void rebuildsSearchIndexFromMarkdownFiles();
     void importsNotesFromNestedDirectories();
     void rejectsInvalidDailyNoteDates();
+    void reopensSameVaultWithoutLosingIndexedNotes();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -766,6 +767,23 @@ void NoteCreationTest::rejectsInvalidDailyNoteDates()
     QVERIFY(!repository.dailyNote(QDate(), &error));
     QVERIFY(error.contains(QStringLiteral("ungültig")));
     QCOMPARE(repository.notes(&error).size(), 0);
+}
+
+void NoteCreationTest::reopensSameVaultWithoutLosingIndexedNotes()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Reopened vault"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto reopened = repository.note(created->id, true, &error);
+    QVERIFY2(reopened.has_value(), qPrintable(error));
+    QCOMPARE(reopened->title, created->title);
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
