@@ -444,6 +444,15 @@ ApplicationWindow {
                         Accessible.name: qsTr("Notizen nach Titel, Text oder Tag durchsuchen")
                         onTextChanged: searchTimer.restart()
                     }
+                    ToolButton {
+                        visible: searchField.text.length > 0
+                        text: "×"
+                        Accessible.name: qsTr("Suchtext löschen")
+                        onClicked: {
+                            searchField.clear()
+                            searchField.forceActiveFocus()
+                        }
+                    }
 
                     Button {
                         Layout.fillWidth: true
