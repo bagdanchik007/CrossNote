@@ -366,9 +366,11 @@ void NoteController::reloadNotes()
     QString error;
     const QVector<Note> items = m_noteModel.section() == QStringLiteral("trash")
         ? m_repository.trashedNotes(&error) : m_repository.notes(&error);
-    m_noteModel.setNotes(items);
-    if (!error.isEmpty())
+    if (!error.isEmpty()) {
         setError(error);
+        return;
+    }
+    m_noteModel.setNotes(items);
 }
 
 void NoteController::refreshLinkAnalysis()
