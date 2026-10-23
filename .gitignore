@@ -1,4 +1,8 @@
 /build/
+/test-vault-*/
+/test-index-*/
+/test-export-*/
+/test-outside-*/
 cmake-build-*/
 CMakeUserPresets.json
 .vscode/
