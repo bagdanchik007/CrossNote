@@ -19,6 +19,7 @@ private slots:
     void savesContentAndRefreshesSearchResults();
     void failedVaultSwitchKeepsCurrentNote();
     void reopensSameNoteFromLatestDiskContent();
+    void reportsMissingNoteOpeningFailure();
 
 private:
     QTemporaryDir m_sandbox;
@@ -106,6 +107,16 @@ void NoteControllerTest::reopensSameNoteFromLatestDiskContent()
 
     controller.openNote(id);
     QCOMPARE(controller.selectedContent(), QStringLiteral("second"));
+}
+
+void NoteControllerTest::reportsMissingNoteOpeningFailure()
+{
+    NoteController controller;
+    controller.setVaultPath(m_vaultPath);
+    QVERIFY(!controller.openNote(QStringLiteral("missing-id")));
+    QVERIFY(!controller.errorText().isEmpty());
+    QVERIFY(!controller.openNoteByTitle(QStringLiteral("Missing title")));
+    QVERIFY(controller.statusText().contains(QStringLiteral("Missing title")));
 }
 
 QTEST_GUILESS_MAIN(NoteControllerTest)
