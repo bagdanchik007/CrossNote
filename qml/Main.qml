@@ -587,6 +587,8 @@ ApplicationWindow {
                         id: titleField
                         Layout.fillWidth: true
                         placeholderText: qsTr("Notiztitel")
+                        maximumLength: 160
+                        Accessible.name: qsTr("Titel der ausgewählten Notiz")
                         font.pixelSize: 25
                         font.bold: true
                         enabled: noteController.hasSelection
