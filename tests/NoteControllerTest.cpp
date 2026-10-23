@@ -65,6 +65,8 @@ void NoteControllerTest::savesContentAndRefreshesSearchResults()
     controller.setSearchQuery(QStringLiteral("absent"));
     QCOMPARE(controller.noteModel()->count(), 0);
     QVERIFY(controller.errorText().isEmpty());
+    controller.setSearchQuery(QString());
+    QCOMPARE(controller.noteModel()->count(), 1);
 }
 
 void NoteControllerTest::failedVaultSwitchKeepsCurrentNote()
