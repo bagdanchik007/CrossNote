@@ -164,12 +164,14 @@ void NoteListModelTest::skipsResetForIdenticalSearchIds()
     NoteListModel model;
     model.setNotes({note(QStringLiteral("one"), QStringLiteral("One"), QDateTime::currentDateTimeUtc())});
     QSignalSpy countSpy(&model, &NoteListModel::countChanged);
+    QSignalSpy resetSpy(&model, &QAbstractItemModel::modelReset);
     model.setSearchResultIds({QStringLiteral("one")}, true);
-    QCOMPARE(countSpy.count(), 1);
+    QCOMPARE(resetSpy.count(), 1);
     model.setSearchResultIds({QStringLiteral("one")}, true);
-    QCOMPARE(countSpy.count(), 1);
+    QCOMPARE(resetSpy.count(), 1);
     model.setSearchResultIds({}, false);
-    QCOMPARE(countSpy.count(), 2);
+    QCOMPARE(resetSpy.count(), 2);
+    QCOMPARE(countSpy.count(), 0);
 }
 
 void NoteListModelTest::sortsRecentNotesByOpenTime()
