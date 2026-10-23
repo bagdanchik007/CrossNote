@@ -26,24 +26,27 @@ private slots:
     void persistsBoundedEditorAndThemePreferences();
 
 private:
-    QTemporaryDir m_sandbox;
+    std::unique_ptr<QTemporaryDir> m_sandbox;
     std::unique_ptr<QTemporaryDir> m_testVault;
     QString m_vaultPath;
 };
 
 void NoteControllerTest::initTestCase()
 {
-    QVERIFY(m_sandbox.isValid());
     QCoreApplication::setOrganizationName(QStringLiteral("CrossNoteTests"));
     QCoreApplication::setApplicationName(QStringLiteral("NoteControllerTest"));
     QSettings::setDefaultFormat(QSettings::IniFormat);
-    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_sandbox.path());
+    m_sandbox = std::make_unique<QTemporaryDir>(
+        QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("controller-settings-XXXXXX")));
+    QVERIFY(m_sandbox->isValid());
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_sandbox->path());
 }
 
 void NoteControllerTest::init()
 {
     QSettings().clear();
-    m_testVault = std::make_unique<QTemporaryDir>();
+    m_testVault = std::make_unique<QTemporaryDir>(
+        QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("controller-vault-XXXXXX")));
     QVERIFY(m_testVault->isValid());
     m_vaultPath = m_testVault->path();
 }
