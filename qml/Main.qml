@@ -600,6 +600,7 @@ ApplicationWindow {
                         enabled: noteController.hasSelection
                         Accessible.name: qsTr("Tags der Notiz")
                         onEditingFinished: {
+                            if (!window.saveEditor()) return
                             var values = text.split(",").map(function(tag) { return tag.trim() }).filter(function(tag) { return tag.length > 0 })
                             noteController.setTags(noteController.selectedId, values)
                         }
