@@ -290,7 +290,7 @@ void NoteController::setSearchQuery(const QString &query)
     QStringList ids;
     QString error;
     if (!m_repository.searchIds(normalized, &ids, &error)) {
-        m_noteModel.setSearchResultIds({}, false);
+        m_noteModel.setSearchResultIds({}, true);
         setError(error);
         return;
     }
