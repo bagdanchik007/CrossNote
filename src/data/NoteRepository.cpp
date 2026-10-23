@@ -671,8 +671,11 @@ std::optional<Note> NoteRepository::note(const QString &id, bool includeContent,
         if (error) *error = sqlError(query);
         return std::nullopt;
     }
-    if (!query.next())
+    if (!query.next()) {
+        if (query.lastError().isValid() && error)
+            *error = sqlError(query);
         return std::nullopt;
+    }
 
     Note result;
     result.id = id;
