@@ -22,6 +22,7 @@ private slots:
     void skipsResetForIdenticalSearchIds();
     void sortsRecentNotesByOpenTime();
     void matchesLocalQueryAcrossTitleContentAndTags();
+    void emitsCountSignalOnlyForVisibleCountChanges();
 
 private:
     static Note note(QString id, QString title, QDateTime updatedAt);
@@ -200,6 +201,19 @@ void NoteListModelTest::matchesLocalQueryAcrossTitleContentAndTags()
     model.setQuery(QStringLiteral("planning"));
     QCOMPARE(model.count(), 1);
     QCOMPARE(model.data(model.index(0, 0), NoteListModel::IdRole).toString(), QStringLiteral("title"));
+}
+
+void NoteListModelTest::emitsCountSignalOnlyForVisibleCountChanges()
+{
+    NoteListModel model;
+    Note first = note(QStringLiteral("one"), QStringLiteral("One"), QDateTime::currentDateTimeUtc());
+    model.setNotes({first});
+    QSignalSpy countSpy(&model, &NoteListModel::countChanged);
+    first.title = QStringLiteral("Updated title");
+    model.setNotes({first});
+    QCOMPARE(countSpy.count(), 0);
+    model.setNotes({});
+    QCOMPARE(countSpy.count(), 1);
 }
 
 QTEST_GUILESS_MAIN(NoteListModelTest)
