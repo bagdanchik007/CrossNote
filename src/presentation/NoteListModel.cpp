@@ -56,8 +56,14 @@ QString NoteListModel::tagFilter() const { return m_tagFilter; }
 void NoteListModel::setNotes(QVector<Note> notes)
 {
     std::sort(notes.begin(), notes.end(), [this](const Note &left, const Note &right) {
-        if (m_section == QStringLiteral("recent") && left.lastOpenedAt != right.lastOpenedAt)
-            return left.lastOpenedAt > right.lastOpenedAt;
+        if (m_section == QStringLiteral("recent")) {
+            const bool leftWasOpened = left.lastOpenedAt.isValid();
+            const bool rightWasOpened = right.lastOpenedAt.isValid();
+            if (leftWasOpened != rightWasOpened)
+                return leftWasOpened;
+            if (leftWasOpened && left.lastOpenedAt != right.lastOpenedAt)
+                return left.lastOpenedAt > right.lastOpenedAt;
+        }
         if (left.updatedAt != right.updatedAt)
             return left.updatedAt > right.updatedAt;
         return left.id < right.id;
