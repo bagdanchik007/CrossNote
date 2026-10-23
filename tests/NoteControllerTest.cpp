@@ -6,6 +6,8 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
+#include <memory>
+
 using namespace CrossNote;
 
 class NoteControllerTest final : public QObject
@@ -25,6 +27,7 @@ private slots:
 
 private:
     QTemporaryDir m_sandbox;
+    std::unique_ptr<QTemporaryDir> m_testVault;
     QString m_vaultPath;
 };
 
@@ -40,8 +43,9 @@ void NoteControllerTest::initTestCase()
 void NoteControllerTest::init()
 {
     QSettings().clear();
-    m_vaultPath = m_sandbox.filePath(QUuid::createUuid().toString(QUuid::WithoutBraces));
-    QVERIFY(QDir(m_vaultPath).exists() || QDir().mkpath(m_vaultPath));
+    m_testVault = std::make_unique<QTemporaryDir>();
+    QVERIFY(m_testVault->isValid());
+    m_vaultPath = m_testVault->path();
 }
 
 void NoteControllerTest::createsAndSelectsNotes()
