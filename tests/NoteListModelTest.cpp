@@ -21,6 +21,7 @@ private slots:
     void createsReadableMarkdownPreviews();
     void skipsResetForIdenticalSearchIds();
     void sortsRecentNotesByOpenTime();
+    void matchesLocalQueryAcrossTitleContentAndTags();
 
 private:
     static Note note(QString id, QString title, QDateTime updatedAt);
@@ -182,6 +183,23 @@ void NoteListModelTest::sortsRecentNotesByOpenTime()
     model.setSection(QStringLiteral("recent"));
     QCOMPARE(model.data(model.index(0, 0), NoteListModel::IdRole).toString(), QStringLiteral("newer"));
     QCOMPARE(model.data(model.index(1, 0), NoteListModel::IdRole).toString(), QStringLiteral("older"));
+}
+
+void NoteListModelTest::matchesLocalQueryAcrossTitleContentAndTags()
+{
+    NoteListModel model;
+    Note titleMatch = note(QStringLiteral("title"), QStringLiteral("Planning"), QDateTime::currentDateTimeUtc());
+    Note bodyMatch = note(QStringLiteral("body"), QStringLiteral("Other"), QDateTime::currentDateTimeUtc());
+    bodyMatch.content = QStringLiteral("Build the roadmap");
+    Note tagMatch = note(QStringLiteral("tag"), QStringLiteral("Third"), QDateTime::currentDateTimeUtc());
+    tagMatch.tags = {QStringLiteral("Roadmap")};
+    model.setNotes({titleMatch, bodyMatch, tagMatch});
+
+    model.setQuery(QStringLiteral("roadmap"));
+    QCOMPARE(model.count(), 2);
+    model.setQuery(QStringLiteral("planning"));
+    QCOMPARE(model.count(), 1);
+    QCOMPARE(model.data(model.index(0, 0), NoteListModel::IdRole).toString(), QStringLiteral("title"));
 }
 
 QTEST_GUILESS_MAIN(NoteListModelTest)
