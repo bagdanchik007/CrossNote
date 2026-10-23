@@ -42,6 +42,7 @@ ApplicationWindow {
         return "# " + title + "\n\n" + safeBody
     }
     function saveEditor() {
+        saveTimer.stop()
         if (noteController.hasSelection)
             return noteController.saveCurrent(titleField.text, bodyEditor.text)
         return true
