@@ -18,6 +18,7 @@ private slots:
     void createsAndSelectsNotes();
     void savesContentAndRefreshesSearchResults();
     void failedVaultSwitchKeepsCurrentNote();
+    void reopensSameNoteFromLatestDiskContent();
 
 private:
     QTemporaryDir m_sandbox;
@@ -82,6 +83,27 @@ void NoteControllerTest::failedVaultSwitchKeepsCurrentNote()
     QCOMPARE(controller.vaultPath(), QFileInfo(m_vaultPath).canonicalFilePath());
     QCOMPARE(controller.selectedId(), selectedId);
     QCOMPARE(controller.selectedTitle(), QStringLiteral("Still here"));
+}
+
+void NoteControllerTest::reopensSameNoteFromLatestDiskContent()
+{
+    NoteController controller;
+    controller.setVaultPath(m_vaultPath);
+    QVERIFY(controller.createNote(QStringLiteral("External update")));
+    QVERIFY(controller.saveCurrent(QStringLiteral("External update"), QStringLiteral("first")));
+    const QString id = controller.selectedId();
+    const QString noteFile = QDir(m_vaultPath).filePath(QStringLiteral("External-update.md"));
+    QFile file(noteFile);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QByteArray contents = file.readAll();
+    file.close();
+    contents.replace("first", "second");
+    QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    QCOMPARE(file.write(contents), qint64(contents.size()));
+    file.close();
+
+    controller.openNote(id);
+    QCOMPARE(controller.selectedContent(), QStringLiteral("second"));
 }
 
 QTEST_GUILESS_MAIN(NoteControllerTest)
