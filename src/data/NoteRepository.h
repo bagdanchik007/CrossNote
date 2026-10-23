@@ -51,7 +51,8 @@ public:
     [[nodiscard]] bool exportNote(const QString &id, const QString &destination,
                                   QString *error = nullptr) const;
     [[nodiscard]] bool saveNote(const QString &id, const QString &title,
-                                const QString &content, const QByteArray &expectedHash, QString *error = nullptr);
+                                const QString &content, const QByteArray &expectedHash, QString *error = nullptr,
+                                QByteArray *savedHash = nullptr);
     [[nodiscard]] bool setFavorite(const QString &id, bool favorite,
                                    QString *error = nullptr);
     [[nodiscard]] bool setArchived(const QString &id, bool archived,

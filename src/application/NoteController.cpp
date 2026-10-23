@@ -196,14 +196,14 @@ bool NoteController::saveCurrent(const QString &title, const QString &content)
     if (title.simplified() == m_selectedTitle.simplified() && content == m_selectedContent)
         return true;
     QString error;
-    if (!m_repository.saveNote(m_selectedId, title, content, m_selectedHash, &error)) {
+    QByteArray savedHash;
+    if (!m_repository.saveNote(m_selectedId, title, content, m_selectedHash, &error, &savedHash)) {
         setError(error);
         return false;
     }
     m_selectedTitle = title.trimmed().isEmpty() ? tr("Unbenannte Notiz") : title.trimmed();
     m_selectedContent = content;
-    const auto saved = m_repository.note(m_selectedId, true);
-    if (saved) m_selectedHash = saved->contentHash;
+    m_selectedHash = savedHash;
     refreshLinkAnalysis();
     clearError();
     if (!m_conflictPath.isEmpty()) {

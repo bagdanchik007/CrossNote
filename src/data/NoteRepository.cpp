@@ -1258,9 +1258,12 @@ bool NoteRepository::exportNote(const QString &id, const QString &destination, Q
 }
 
 bool NoteRepository::saveNote(const QString &id, const QString &title,
-                              const QString &content, const QByteArray &expectedHash, QString *error)
+                              const QString &content, const QByteArray &expectedHash, QString *error,
+                              QByteArray *savedHash)
 {
     clearError(error);
+    if (savedHash)
+        savedHash->clear();
     const QString normalizedTitle = title.simplified();
     if (normalizedTitle.size() > 160) {
         if (error) *error = QStringLiteral("Der Titel darf höchstens 160 Zeichen lang sein.");
@@ -1412,6 +1415,8 @@ bool NoteRepository::saveNote(const QString &id, const QString &title,
     updateWatcherPaths();
     if (!conflictRelative.isEmpty())
         emit externalVersionBackedUp(conflictRelative);
+    if (savedHash)
+        *savedHash = QCryptographicHash::hash(bytes, QCryptographicHash::Sha256);
     emit notesChanged();
     return true;
 }
