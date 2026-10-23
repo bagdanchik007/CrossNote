@@ -175,6 +175,13 @@ ApplicationWindow {
         onTriggered: saveEditor()
     }
 
+    Timer {
+        id: searchTimer
+        interval: 180
+        repeat: false
+        onTriggered: noteController.setSearchQuery(searchField.text)
+    }
+
     Shortcut {
         sequence: StandardKey.New
         enabled: !createNoteDialog.visible
@@ -435,7 +442,7 @@ ApplicationWindow {
                         placeholderText: qsTr("Notizen durchsuchen")
                         selectByMouse: true
                         Accessible.name: qsTr("Notizen nach Titel, Text oder Tag durchsuchen")
-                        onTextChanged: noteController.setSearchQuery(text)
+                        onTextChanged: searchTimer.restart()
                     }
 
                     Button {
