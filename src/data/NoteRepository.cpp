@@ -729,8 +729,11 @@ std::optional<QString> NoteRepository::noteIdForTitle(const QString &title, QStr
         if (error) *error = sqlError(query);
         return std::nullopt;
     }
-    if (!query.next())
+    if (!query.next()) {
+        if (query.lastError().isValid() && error)
+            *error = sqlError(query);
         return std::nullopt;
+    }
     return query.value(0).toString();
 }
 
