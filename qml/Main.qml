@@ -315,6 +315,7 @@ ApplicationWindow {
                     Button {
                         Layout.fillWidth: true
                         text: qsTr("Notizen")
+                        Accessible.name: qsTr("Alle aktiven Notizen anzeigen")
                         checkable: true
                         checked: window.currentSection === "notes"
                         onClicked: {
@@ -335,6 +336,7 @@ ApplicationWindow {
                     Button {
                         Layout.fillWidth: true
                         text: qsTr("Favoriten")
+                        Accessible.name: qsTr("Favoriten anzeigen")
                         checkable: true
                         checked: window.currentSection === "favorites"
                         onClicked: {
@@ -346,6 +348,7 @@ ApplicationWindow {
                     Button {
                         Layout.fillWidth: true
                         text: qsTr("Archiv")
+                        Accessible.name: qsTr("Archivierte Notizen anzeigen")
                         checkable: true
                         checked: window.currentSection === "archive"
                         onClicked: {
@@ -357,6 +360,7 @@ ApplicationWindow {
                     Button {
                         Layout.fillWidth: true
                         text: qsTr("Kürzlich geöffnet")
+                        Accessible.name: qsTr("Kürzlich geöffnete Notizen anzeigen")
                         checkable: true
                         checked: window.currentSection === "recent"
                         onClicked: {
@@ -368,6 +372,7 @@ ApplicationWindow {
                     Button {
                         Layout.fillWidth: true
                         text: qsTr("Kürzlich bearbeitet")
+                        Accessible.name: qsTr("Kürzlich bearbeitete Notizen anzeigen")
                         checkable: true
                         checked: window.currentSection === "edited"
                         onClicked: {
@@ -379,6 +384,7 @@ ApplicationWindow {
                     Button {
                         Layout.fillWidth: true
                         text: qsTr("Papierkorb")
+                        Accessible.name: qsTr("Papierkorb anzeigen")
                         checkable: true
                         checked: window.currentSection === "trash"
                         onClicked: {
@@ -619,6 +625,7 @@ ApplicationWindow {
                     }
                     Button {
                         text: window.previewMode ? qsTr("Bearbeiten") : qsTr("Vorschau")
+                        Accessible.name: window.previewMode ? qsTr("Markdown-Editor anzeigen") : qsTr("Markdown-Vorschau anzeigen")
                         enabled: noteController.hasSelection
                         onClicked: {
                             if (!saveEditor()) return
@@ -627,17 +634,20 @@ ApplicationWindow {
                     }
                     Button {
                         text: qsTr("Exportieren")
+                        Accessible.name: qsTr("Ausgewählte Notiz als Markdown exportieren")
                         enabled: noteController.hasSelection
                         onClicked: exportDialog.open()
                     }
                     Button {
                         text: qsTr("Löschen")
+                        Accessible.name: qsTr("Ausgewählte Notiz in den Papierkorb verschieben")
                         enabled: noteController.hasSelection
                         onClicked: deleteDialog.open()
                     }
                     Button {
                         visible: noteController.hasSelection && window.currentSection !== "trash"
                         text: window.currentSection === "archive" ? qsTr("Aus Archiv holen") : qsTr("Archivieren")
+                        Accessible.name: window.currentSection === "archive" ? qsTr("Notiz aus dem Archiv holen") : qsTr("Notiz archivieren")
                         onClicked: noteController.setArchived(noteController.selectedId,
                                                               window.currentSection !== "archive")
                     }
