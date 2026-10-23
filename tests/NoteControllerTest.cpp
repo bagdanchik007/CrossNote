@@ -20,6 +20,7 @@ private slots:
     void failedVaultSwitchKeepsCurrentNote();
     void reopensSameNoteFromLatestDiskContent();
     void reportsMissingNoteOpeningFailure();
+    void tagEditDoesNotCreateFalseExternalConflict();
 
 private:
     QTemporaryDir m_sandbox;
@@ -117,6 +118,19 @@ void NoteControllerTest::reportsMissingNoteOpeningFailure()
     QVERIFY(!controller.errorText().isEmpty());
     QVERIFY(!controller.openNoteByTitle(QStringLiteral("Missing title")));
     QVERIFY(controller.statusText().contains(QStringLiteral("Missing title")));
+}
+
+void NoteControllerTest::tagEditDoesNotCreateFalseExternalConflict()
+{
+    NoteController controller;
+    controller.setVaultPath(m_vaultPath);
+    QVERIFY(controller.createNote(QStringLiteral("Tagged draft")));
+    QVERIFY(controller.saveCurrent(QStringLiteral("Tagged draft"), QStringLiteral("first body")));
+    controller.setTags(controller.selectedId(), {QStringLiteral("work")});
+    QVERIFY(controller.errorText().isEmpty());
+    QVERIFY(controller.saveCurrent(QStringLiteral("Tagged draft"), QStringLiteral("second body")));
+    QCOMPARE(controller.statusText(), QStringLiteral("Gespeichert"));
+    QCOMPARE(controller.selectedTags(), QStringList({QStringLiteral("work")}));
 }
 
 QTEST_GUILESS_MAIN(NoteControllerTest)
