@@ -153,8 +153,6 @@ bool NoteController::exportSelectedNote(const QString &destination)
 
 void NoteController::openNote(const QString &id)
 {
-    if (id == m_selectedId)
-        return;
     QString error;
     const auto selected = m_repository.note(id, true, &error);
     if (!selected) {
