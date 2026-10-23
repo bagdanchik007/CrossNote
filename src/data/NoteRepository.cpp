@@ -550,6 +550,10 @@ QVector<Note> NoteRepository::trashedNotes(QString *error) const
         item.contentHash = QCryptographicHash::hash(bytes, QCryptographicHash::Sha256);
         result.append(std::move(item));
     }
+    if (query.lastError().isValid()) {
+        result.clear();
+        if (error) *error = sqlError(query);
+    }
     return result;
 }
 namespace {
