@@ -83,11 +83,10 @@ void NoteListModel::setNotes(QVector<Note> notes)
                 : m_section == QStringLiteral("edited")
                     ? note.updatedAt >= editedAfter
                     : true);
-        const QString searchable = note.title + u' ' + note.content + u' '
-            + note.tags.join(u' ');
         const bool matchesQuery = m_searchResultsActive
             ? m_searchResultIds.contains(note.id)
-            : m_query.isEmpty() || searchable.contains(m_query, Qt::CaseInsensitive);
+            : m_query.isEmpty() || (note.title + u' ' + note.content + u' '
+                                    + note.tags.join(u' ')).contains(m_query, Qt::CaseInsensitive);
         const bool matchesTag = m_tagFilter.isEmpty()
             || note.tags.contains(m_tagFilter, Qt::CaseInsensitive);
         if (inSection && matchesQuery && matchesTag)
