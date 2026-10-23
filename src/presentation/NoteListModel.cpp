@@ -55,6 +55,7 @@ QString NoteListModel::tagFilter() const { return m_tagFilter; }
 
 void NoteListModel::setNotes(QVector<Note> notes)
 {
+    const int previousCount = m_visibleRows.size();
     std::sort(notes.begin(), notes.end(), [this](const Note &left, const Note &right) {
         if (m_section == QStringLiteral("recent")) {
             const bool leftWasOpened = left.lastOpenedAt.isValid();
@@ -93,7 +94,8 @@ void NoteListModel::setNotes(QVector<Note> notes)
             m_visibleRows.append(static_cast<int>(i));
     }
     endResetModel();
-    emit countChanged();
+    if (previousCount != m_visibleRows.size())
+        emit countChanged();
 }
 
 void NoteListModel::setSearchResultIds(const QStringList &ids, bool active)
