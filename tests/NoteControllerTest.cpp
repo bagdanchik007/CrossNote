@@ -41,7 +41,7 @@ void NoteControllerTest::init()
 {
     QSettings().clear();
     m_vaultPath = m_sandbox.filePath(QUuid::createUuid().toString(QUuid::WithoutBraces));
-    QVERIFY(QDir().mkpath(m_vaultPath));
+    QVERIFY(QDir(m_vaultPath).exists() || QDir().mkpath(m_vaultPath));
 }
 
 void NoteControllerTest::createsAndSelectsNotes()
