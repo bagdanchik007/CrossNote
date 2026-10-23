@@ -492,6 +492,11 @@ bool NoteRepository::searchIds(const QString &query, QStringList *ids, QString *
     }
     while (search.next())
         ids->append(search.value(0).toString());
+    if (search.lastError().isValid()) {
+        ids->clear();
+        if (error) *error = sqlError(search);
+        return false;
+    }
     return true;
 }
 
