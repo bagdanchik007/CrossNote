@@ -113,7 +113,8 @@ bool NoteController::activateCreatedNote(const Note &note)
     setSection(QStringLiteral("notes"));
     setTagFilter(QString());
     setSearchQuery(QString());
-    openNote(note.id);
+    if (!openNote(note.id))
+        return false;
     setStatus(tr("Notiz erstellt"));
     return true;
 }
@@ -130,7 +131,8 @@ bool NoteController::openDailyNote()
     setSection(QStringLiteral("notes"));
     setTagFilter(QString());
     setSearchQuery(QString());
-    openNote(daily->id);
+    if (!openNote(daily->id))
+        return false;
     setStatus(tr("Tagesnotiz geöffnet"));
     return true;
 }
@@ -151,13 +153,14 @@ bool NoteController::exportSelectedNote(const QString &destination)
     return true;
 }
 
-void NoteController::openNote(const QString &id)
+bool NoteController::openNote(const QString &id)
 {
     QString error;
     const auto selected = m_repository.note(id, true, &error);
     if (!selected) {
         if (!error.isEmpty()) setError(error);
-        return;
+        else setError(tr("Die Notiz wurde nicht gefunden."));
+        return false;
     }
     m_selectedId = selected->id;
     m_selectedTitle = selected->title;
@@ -173,9 +176,10 @@ void NoteController::openNote(const QString &id)
     else
         setError(error);
     setStatus(tr("Notiz geöffnet"));
+    return openedRecorded;
 }
 
-void NoteController::openNoteByTitle(const QString &title)
+bool NoteController::openNoteByTitle(const QString &title)
 {
     QString error;
     const auto id = m_repository.noteIdForTitle(title, &error);
@@ -184,9 +188,9 @@ void NoteController::openNoteByTitle(const QString &title)
             setError(error);
         else
             setStatus(tr("Verlinkte Notiz nicht gefunden: %1").arg(title));
-        return;
+        return false;
     }
-    openNote(*id);
+    return openNote(*id);
 }
 
 bool NoteController::saveCurrent(const QString &title, const QString &content)
