@@ -44,6 +44,7 @@ private slots:
     void importsNotesFromNestedDirectories();
     void rejectsInvalidDailyNoteDates();
     void reopensSameVaultWithoutLosingIndexedNotes();
+    void returnsCommittedHashFromSave();
 };
 
 void NoteCreationTest::createsSearchableMarkdownNote()
@@ -784,6 +785,26 @@ void NoteCreationTest::reopensSameVaultWithoutLosingIndexedNotes()
     const auto reopened = repository.note(created->id, true, &error);
     QVERIFY2(reopened.has_value(), qPrintable(error));
     QCOMPARE(reopened->title, created->title);
+}
+
+void NoteCreationTest::returnsCommittedHashFromSave()
+{
+    QTemporaryDir vault(QDir::current().filePath(QStringLiteral("test-vault-XXXXXX")));
+    QTemporaryDir index(QDir::current().filePath(QStringLiteral("test-index-XXXXXX")));
+    QVERIFY(vault.isValid());
+    QVERIFY(index.isValid());
+    NoteRepository repository(index.path());
+    QString error;
+    QVERIFY2(repository.openVault(vault.path(), &error), qPrintable(error));
+    const auto created = repository.createNote(QStringLiteral("Hash result"), &error);
+    QVERIFY2(created.has_value(), qPrintable(error));
+    QByteArray savedHash("stale");
+    const QString body = QStringLiteral("saved once");
+    QVERIFY2(repository.saveNote(created->id, created->title, body, created->contentHash,
+                                 &error, &savedHash), qPrintable(error));
+    const auto current = repository.note(created->id, true, &error);
+    QVERIFY2(current.has_value(), qPrintable(error));
+    QCOMPARE(savedHash, current->contentHash);
 }
 
 QTEST_GUILESS_MAIN(NoteCreationTest)
