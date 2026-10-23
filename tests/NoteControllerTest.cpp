@@ -85,7 +85,7 @@ void NoteControllerTest::failedVaultSwitchKeepsCurrentNote()
     controller.setVaultPath(m_vaultPath);
     QVERIFY(controller.createNote(QStringLiteral("Still here")));
     const QString selectedId = controller.selectedId();
-    const QString invalidPath = m_sandbox.filePath(QStringLiteral("regular-file"));
+    const QString invalidPath = m_sandbox->filePath(QStringLiteral("regular-file"));
     QFile file(invalidPath);
     QVERIFY(file.open(QIODevice::WriteOnly));
     file.close();
