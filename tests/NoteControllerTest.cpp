@@ -21,6 +21,7 @@ private slots:
     void reopensSameNoteFromLatestDiskContent();
     void reportsMissingNoteOpeningFailure();
     void tagEditDoesNotCreateFalseExternalConflict();
+    void persistsBoundedEditorAndThemePreferences();
 
 private:
     QTemporaryDir m_sandbox;
@@ -131,6 +132,22 @@ void NoteControllerTest::tagEditDoesNotCreateFalseExternalConflict()
     QVERIFY(controller.saveCurrent(QStringLiteral("Tagged draft"), QStringLiteral("second body")));
     QCOMPARE(controller.statusText(), QStringLiteral("Gespeichert"));
     QCOMPARE(controller.selectedTags(), QStringList({QStringLiteral("work")}));
+}
+
+void NoteControllerTest::persistsBoundedEditorAndThemePreferences()
+{
+    {
+        NoteController controller;
+        controller.setEditorFontSize(100);
+        controller.setDarkTheme(true);
+        QCOMPARE(controller.editorFontSize(), 32);
+        QVERIFY(controller.darkTheme());
+    }
+    NoteController reopened;
+    QCOMPARE(reopened.editorFontSize(), 32);
+    QVERIFY(reopened.darkTheme());
+    reopened.setEditorFontSize(1);
+    QCOMPARE(reopened.editorFontSize(), 12);
 }
 
 QTEST_GUILESS_MAIN(NoteControllerTest)
