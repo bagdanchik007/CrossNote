@@ -421,6 +421,10 @@ public:
             }
             result.append(std::move(item));
         }
+        if (query.lastError().isValid()) {
+            result.clear();
+            if (error) *error = sqlError(query);
+        }
         return result;
     }
 };
