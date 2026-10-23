@@ -29,6 +29,7 @@ class NoteController final : public QObject
 
 public:
     explicit NoteController(QObject *parent = nullptr);
+    explicit NoteController(const QString &indexRoot, QObject *parent = nullptr);
 
     [[nodiscard]] NoteListModel *noteModel();
     [[nodiscard]] QString vaultPath() const;

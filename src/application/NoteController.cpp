@@ -7,7 +7,12 @@
 namespace CrossNote {
 
 NoteController::NoteController(QObject *parent)
-    : QObject(parent), m_repository(), m_noteModel()
+    : NoteController(QString(), parent)
+{
+}
+
+NoteController::NoteController(const QString &indexRoot, QObject *parent)
+    : QObject(parent), m_repository(indexRoot), m_noteModel()
 {
     QSettings settings;
     m_editorFontSize = qBound(12, settings.value(QStringLiteral("editor/fontSize"), 16).toInt(), 32);

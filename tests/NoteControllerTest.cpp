@@ -28,7 +28,9 @@ private slots:
 private:
     std::unique_ptr<QTemporaryDir> m_sandbox;
     std::unique_ptr<QTemporaryDir> m_testVault;
+    std::unique_ptr<QTemporaryDir> m_testIndex;
     QString m_vaultPath;
+    QString m_indexPath;
 };
 
 void NoteControllerTest::initTestCase()
@@ -47,13 +49,17 @@ void NoteControllerTest::init()
     QSettings().clear();
     m_testVault = std::make_unique<QTemporaryDir>(
         QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("controller-vault-XXXXXX")));
+    m_testIndex = std::make_unique<QTemporaryDir>(
+        QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("controller-index-XXXXXX")));
     QVERIFY(m_testVault->isValid());
+    QVERIFY(m_testIndex->isValid());
     m_vaultPath = m_testVault->path();
+    m_indexPath = m_testIndex->path();
 }
 
 void NoteControllerTest::createsAndSelectsNotes()
 {
-    NoteController controller;
+    NoteController controller(m_indexPath);
     controller.setVaultPath(m_vaultPath);
     QVERIFY2(controller.errorText().isEmpty(), qPrintable(controller.errorText()));
     QVERIFY(controller.createNote(QStringLiteral("Controller note")));
@@ -65,7 +71,7 @@ void NoteControllerTest::createsAndSelectsNotes()
 
 void NoteControllerTest::savesContentAndRefreshesSearchResults()
 {
-    NoteController controller;
+    NoteController controller(m_indexPath);
     controller.setVaultPath(m_vaultPath);
     QVERIFY(controller.createNote(QStringLiteral("Draft")));
     QVERIFY(controller.saveCurrent(QStringLiteral("Final title"), QStringLiteral("needle phrase")));
@@ -81,7 +87,7 @@ void NoteControllerTest::savesContentAndRefreshesSearchResults()
 
 void NoteControllerTest::failedVaultSwitchKeepsCurrentNote()
 {
-    NoteController controller;
+    NoteController controller(m_indexPath);
     controller.setVaultPath(m_vaultPath);
     QVERIFY(controller.createNote(QStringLiteral("Still here")));
     const QString selectedId = controller.selectedId();
@@ -99,7 +105,7 @@ void NoteControllerTest::failedVaultSwitchKeepsCurrentNote()
 
 void NoteControllerTest::reopensSameNoteFromLatestDiskContent()
 {
-    NoteController controller;
+    NoteController controller(m_indexPath);
     controller.setVaultPath(m_vaultPath);
     QVERIFY(controller.createNote(QStringLiteral("External update")));
     QVERIFY(controller.saveCurrent(QStringLiteral("External update"), QStringLiteral("first")));
@@ -120,7 +126,7 @@ void NoteControllerTest::reopensSameNoteFromLatestDiskContent()
 
 void NoteControllerTest::reportsMissingNoteOpeningFailure()
 {
-    NoteController controller;
+    NoteController controller(m_indexPath);
     controller.setVaultPath(m_vaultPath);
     QVERIFY(!controller.openNote(QStringLiteral("missing-id")));
     QVERIFY(!controller.errorText().isEmpty());
@@ -130,7 +136,7 @@ void NoteControllerTest::reportsMissingNoteOpeningFailure()
 
 void NoteControllerTest::tagEditDoesNotCreateFalseExternalConflict()
 {
-    NoteController controller;
+    NoteController controller(m_indexPath);
     controller.setVaultPath(m_vaultPath);
     QVERIFY(controller.createNote(QStringLiteral("Tagged draft")));
     QVERIFY(controller.saveCurrent(QStringLiteral("Tagged draft"), QStringLiteral("first body")));
@@ -144,13 +150,13 @@ void NoteControllerTest::tagEditDoesNotCreateFalseExternalConflict()
 void NoteControllerTest::persistsBoundedEditorAndThemePreferences()
 {
     {
-        NoteController controller;
+        NoteController controller(m_indexPath);
         controller.setEditorFontSize(100);
         controller.setDarkTheme(true);
         QCOMPARE(controller.editorFontSize(), 32);
         QVERIFY(controller.darkTheme());
     }
-    NoteController reopened;
+    NoteController reopened(m_indexPath);
     QCOMPARE(reopened.editorFontSize(), 32);
     QVERIFY(reopened.darkTheme());
     reopened.setEditorFontSize(1);
