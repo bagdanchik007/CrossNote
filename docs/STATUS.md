@@ -30,6 +30,11 @@
 - Änderungsdatum jeder Notiz wird direkt in der Notizliste angezeigt
 - Archivstatus wird mit SQLite-Schema 3 pro Gerät verwaltet; Markdown-Dateien bleiben dabei unverändert
 - Qt-Test/CTest deckt Notizerstellung, Import, Suche, Tags, Papierkorb, Links, Tagesnotizen, Vorlagen, Backups und Export ab
+- Separater Controller-Test deckt Notizerstellung, Auswahl, Speichern, Suchfilter, explizites Neuladen und fehlgeschlagene Vault-Wechsel ab
+- Controller-Speichern übernimmt den neuen Dateihash direkt aus dem erfolgreichen Repository-Schreibvorgang; Tagänderungen aktualisieren ebenfalls den Hash der ausgewählten Notiz
+- Volltextsuche wird während der Eingabe verzögert ausgelöst; Fehler liefern keine lokalen Ersatztreffer
+- Notizlisten und Suchergebnisse werden bei SQL-Lesefehlern nicht teilweise angezeigt
+- Notizvorschau, Sucheingabe und Hauptaktionen besitzen zusätzliche Screenreader-Beschriftungen
 - GitHub Actions führt die vorhandene CTest-Suite auf Linux aus
 - Deutsche und englische, responsive statische Projektwebsite unter `website/`
 - QML-Startfehler werden in `%TEMP%/CrossNote-startup.log` protokolliert
