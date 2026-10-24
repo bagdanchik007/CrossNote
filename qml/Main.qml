@@ -853,6 +853,7 @@ ApplicationWindow {
                                     .arg(noteController.selectedReadingMinutes)
                               : ""
                         color: window.secondaryTextColor
+                        Accessible.name: text
                     }
                 }
             }
