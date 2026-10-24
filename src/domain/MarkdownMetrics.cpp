@@ -31,11 +31,18 @@ MarkdownMetrics measureMarkdown(const QString &markdown)
     static const QRegularExpression task(QStringLiteral("^\\s*[-*+]\\s+\\[([ xX])\\]"),
                                          QRegularExpression::MultilineOption);
     bool inCodeFence = false;
+    QChar activeFence;
     for (const QString &line : body.split(u'\n')) {
         const QString trimmed = line.trimmed();
-        if (trimmed.startsWith(QStringLiteral("```"))
-            || trimmed.startsWith(QStringLiteral("~~~"))) {
-            inCodeFence = !inCodeFence;
+        const QChar fence = trimmed.isEmpty() ? QChar() : trimmed.front();
+        if ((fence == u'`' || fence == u'~') && trimmed.startsWith(QString(3, fence))) {
+            if (!inCodeFence) {
+                inCodeFence = true;
+                activeFence = fence;
+            } else if (fence == activeFence) {
+                inCodeFence = false;
+                activeFence = {};
+            }
             continue;
         }
         if (inCodeFence)
