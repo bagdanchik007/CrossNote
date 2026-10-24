@@ -568,6 +568,7 @@ ApplicationWindow {
                                 text: searchField.text.length
                                       ? qsTr("Keine Treffer")
                                       : window.currentSection === "trash" ? qsTr("Papierkorb ist leer")
+                                      : window.currentSection === "tasks" ? qsTr("Keine offenen Aufgaben")
                                       : window.currentSection === "archive" ? qsTr("Archiv ist leer")
                                       : window.currentSection === "edited" ? qsTr("Nichts in den letzten sieben Tagen bearbeitet")
                                       : qsTr("Noch keine Notizen")
@@ -580,6 +581,7 @@ ApplicationWindow {
                                 width: parent.width
                                 text: searchField.text.length
                                       ? qsTr("Versuche einen anderen Suchbegriff.")
+                                      : window.currentSection === "tasks" ? qsTr("Markdown-Checkboxen wie - [ ] erscheinen hier, solange sie offen sind.")
                                       : window.currentSection === "archive" ? qsTr("Archivierte Notizen erscheinen nur in diesem Bereich.")
                                       : window.currentSection === "edited" ? qsTr("Hier erscheinen Notizen mit Änderungen aus den letzten sieben Tagen.")
                                       : qsTr("Erstelle deine erste Notiz mit der Schaltfläche oben.")
