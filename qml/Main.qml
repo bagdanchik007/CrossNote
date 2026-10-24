@@ -663,7 +663,7 @@ ApplicationWindow {
                     ToolButton {
                         text: "☐"
                         enabled: noteController.hasSelection
-                        Accessible.name: qsTr("Unerledene Aufgabe an Cursorposition einfügen")
+                        Accessible.name: qsTr("Unerledigte Aufgabe an Cursorposition einfügen")
                         ToolTip.visible: hovered
                         ToolTip.text: qsTr("Aufgabe einfügen · Strg+Umschalt+T")
                         onClicked: window.insertChecklistItem()
