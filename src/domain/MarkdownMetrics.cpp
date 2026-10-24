@@ -1,6 +1,7 @@
 #include "MarkdownMetrics.h"
 
 #include <QRegularExpression>
+#include <QStringList>
 
 namespace CrossNote {
 
@@ -29,12 +30,22 @@ MarkdownMetrics measureMarkdown(const QString &markdown)
 
     static const QRegularExpression task(QStringLiteral("^\\s*[-*+]\\s+\\[([ xX])\\]"),
                                          QRegularExpression::MultilineOption);
-    auto tasks = task.globalMatch(markdown);
-    while (tasks.hasNext()) {
-        const auto match = tasks.next();
-        ++metrics.tasks;
-        if (match.captured(1).compare(QStringLiteral("x"), Qt::CaseInsensitive) == 0)
-            ++metrics.completedTasks;
+    bool inCodeFence = false;
+    for (const QString &line : body.split(u'\n')) {
+        const QString trimmed = line.trimmed();
+        if (trimmed.startsWith(QStringLiteral("```"))
+            || trimmed.startsWith(QStringLiteral("~~~"))) {
+            inCodeFence = !inCodeFence;
+            continue;
+        }
+        if (inCodeFence)
+            continue;
+        const auto match = task.match(line);
+        if (match.hasMatch()) {
+            ++metrics.tasks;
+            if (match.captured(1).compare(QStringLiteral("x"), Qt::CaseInsensitive) == 0)
+                ++metrics.completedTasks;
+        }
     }
     return metrics;
 }
