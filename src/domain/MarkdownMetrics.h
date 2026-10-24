@@ -17,6 +17,7 @@ struct MarkdownMetrics
     {
         return tasks == 0 ? 0 : completedTasks * 100 / tasks;
     }
+    [[nodiscard]] int readingMinutes() const { return (words + 199) / 200; }
 };
 
 [[nodiscard]] MarkdownMetrics measureMarkdown(const QString &markdown);
