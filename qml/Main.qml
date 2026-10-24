@@ -350,7 +350,8 @@ ApplicationWindow {
                     }
                     Button {
                         Layout.fillWidth: true
-                        text: qsTr("Offene Aufgaben")
+                        text: qsTr("Offene Aufgaben (%1)").arg(
+                                  window.currentSection === "tasks" ? noteController.noteModel.count : "–")
                         Accessible.name: qsTr("Notizen mit offenen Aufgaben anzeigen")
                         checkable: true
                         checked: window.currentSection === "tasks"
