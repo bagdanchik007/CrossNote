@@ -1,6 +1,7 @@
 #pragma once
 
 #include "data/NoteRepository.h"
+#include "domain/MarkdownMetrics.h"
 #include "presentation/NoteListModel.h"
 
 #include <QByteArray>
@@ -26,6 +27,7 @@ class NoteController final : public QObject
     Q_PROPERTY(QString errorText READ errorText NOTIFY errorTextChanged)
     Q_PROPERTY(int editorFontSize READ editorFontSize NOTIFY editorFontSizeChanged)
     Q_PROPERTY(bool darkTheme READ darkTheme NOTIFY themeChanged)
+    Q_PROPERTY(int selectedWordCount READ selectedWordCount NOTIFY metricsChanged)
 
 public:
     explicit NoteController(QObject *parent = nullptr);
@@ -45,6 +47,7 @@ public:
     [[nodiscard]] QString errorText() const;
     [[nodiscard]] int editorFontSize() const;
     [[nodiscard]] bool darkTheme() const;
+    [[nodiscard]] int selectedWordCount() const;
 
     Q_INVOKABLE void initialize();
     Q_INVOKABLE void setVaultPath(const QString &path);
@@ -76,6 +79,7 @@ signals:
     void errorTextChanged();
     void editorFontSizeChanged();
     void themeChanged();
+    void metricsChanged();
 
 private:
     void reloadNotes();
@@ -100,6 +104,7 @@ private:
     QString m_errorText;
     int m_editorFontSize = 16;
     bool m_darkTheme = false;
+    MarkdownMetrics m_selectedMetrics;
 };
 
 } // namespace CrossNote
