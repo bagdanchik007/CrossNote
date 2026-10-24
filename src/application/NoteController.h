@@ -33,6 +33,8 @@ class NoteController final : public QObject
     Q_PROPERTY(int selectedTaskCount READ selectedTaskCount NOTIFY metricsChanged)
     Q_PROPERTY(int selectedCompletedTaskCount READ selectedCompletedTaskCount NOTIFY metricsChanged)
     Q_PROPERTY(int selectedOpenTaskCount READ selectedOpenTaskCount NOTIFY metricsChanged)
+    Q_PROPERTY(int selectedTaskCompletionPercent READ selectedTaskCompletionPercent NOTIFY metricsChanged)
+    Q_PROPERTY(int selectedReadingMinutes READ selectedReadingMinutes NOTIFY metricsChanged)
 
 public:
     explicit NoteController(QObject *parent = nullptr);
@@ -58,6 +60,8 @@ public:
     [[nodiscard]] int selectedTaskCount() const;
     [[nodiscard]] int selectedCompletedTaskCount() const;
     [[nodiscard]] int selectedOpenTaskCount() const;
+    [[nodiscard]] int selectedTaskCompletionPercent() const;
+    [[nodiscard]] int selectedReadingMinutes() const;
 
     Q_INVOKABLE void initialize();
     Q_INVOKABLE void setVaultPath(const QString &path);
