@@ -24,6 +24,9 @@
 - Markdown-Export mit Schutz vor versehentlichem Überschreiben der Quelldatei
 - Persistente Hell-/Dunkel-Designauswahl mit angepasster Oberfläche
 - Tastenkürzel zum Erstellen, Speichern und Suchen sowie Wort- und Zeichenzähler
+- Zeichenzähler unterscheidet Gesamtzeichen und Zeichen ohne Leerraum; Lesedauer nutzt 200 Wörter pro Minute
+- Aufgabenbereich sammelt Notizen mit offenen Markdown-Checkboxen und zeigt die Anzahl direkt in der Liste
+- Fortschritt in der ausgewählten Notiz zählt erledigte und offene Checkboxen; Aufgaben lassen sich per Schaltfläche oder `Strg+Umschalt+T` einfügen
 - Änderungen im Editor werden vor dem Schließen der Anwendung gespeichert
 - Zuletzt geöffnete Notizen werden anhand ihres Öffnungszeitpunkts sortiert
 - „Kürzlich bearbeitet“ zeigt Notizen mit Änderungen innerhalb der letzten sieben Tage
