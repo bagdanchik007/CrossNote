@@ -150,10 +150,14 @@ CrossNote ist eine Notiz-App für Windows, Linux, Android und iOS. Markdown-Date
 
 - Vorlagen und Tagesnotizen
 - Aufgaben und Checkboxen
+- Offene Aufgaben aus Markdown-Checkboxen in einem eigenen Bereich sammeln
+- Fortschritt einer Notiz anhand erledigter und offener Aufgaben anzeigen
+- Aufgaben-Checkboxen per Editor-Schaltfläche oder Tastenkürzel einfügen
 - Anhänge und Bilder
 - Markdown- und PDF-Export
 - Archiv, Papierkorb und Wiederherstellung
 - Wort- und Zeichenzähler
+- Lesezeit auf Basis einer konfigurierten durchschnittlichen Lesegeschwindigkeit schätzen
 
 ## Phase 14 – Qualität und Leistung
 
