@@ -793,7 +793,10 @@ ApplicationWindow {
                     }
                     Label {
                         text: noteController.hasSelection
-                              ? qsTr("%1 Wörter · %2 Zeichen").arg(noteController.selectedWordCount).arg(noteController.selectedCharacterCount)
+                              ? qsTr("%1 Wörter · %2 Zeichen · %3 Min. Lesezeit")
+                                    .arg(noteController.selectedWordCount)
+                                    .arg(noteController.selectedCharacterCount)
+                                    .arg(noteController.selectedReadingMinutes)
                               : ""
                         color: window.secondaryTextColor
                     }
