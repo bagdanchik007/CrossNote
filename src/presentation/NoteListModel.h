@@ -23,7 +23,8 @@ public:
         PreviewRole,
         UpdatedAtRole,
         FavoriteRole,
-        TagsRole
+        TagsRole,
+        OpenTaskCountRole
     };
     Q_ENUM(Role)
 
