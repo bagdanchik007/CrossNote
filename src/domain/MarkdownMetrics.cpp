@@ -7,10 +7,16 @@ namespace CrossNote {
 MarkdownMetrics measureMarkdown(const QString &markdown)
 {
     MarkdownMetrics metrics;
-    metrics.characters = markdown.size();
+    QString body = markdown;
+    if (body.startsWith(QStringLiteral("---\n"))) {
+        const qsizetype frontMatterEnd = body.indexOf(QStringLiteral("\n---"), 4);
+        if (frontMatterEnd >= 0)
+            body.remove(0, frontMatterEnd + 4);
+    }
+    metrics.characters = body.size();
 
     static const QRegularExpression token(QStringLiteral("\\S+"));
-    auto words = token.globalMatch(markdown);
+    auto words = token.globalMatch(body);
     while (words.hasNext()) {
         words.next();
         ++metrics.words;
