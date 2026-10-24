@@ -793,7 +793,7 @@ ApplicationWindow {
                     }
                     Label {
                         text: noteController.hasSelection
-                              ? qsTr("%1 Wörter · %2 Zeichen").arg(bodyEditor.text.trim().length ? bodyEditor.text.trim().split(/\\s+/).length : 0).arg(bodyEditor.text.length)
+                              ? qsTr("%1 Wörter · %2 Zeichen").arg(noteController.selectedWordCount).arg(noteController.selectedCharacterCount)
                               : ""
                         color: window.secondaryTextColor
                     }
