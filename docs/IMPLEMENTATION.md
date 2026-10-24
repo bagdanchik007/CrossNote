@@ -30,6 +30,8 @@ Frontmatter-Felder, die CrossNote nicht versteht, bleiben beim Speichern erhalte
 - Vault auswählen und erneut öffnen
 - Notizen erstellen, lesen, umbenennen, speichern und in den Papierkorb verschieben
 - Titel- und Inhaltssuche, Favoriten, Tags und zuletzt geöffnete Notizen
+- Offene Markdown-Checkboxen als Aufgabenbereich und Fortschrittsanzeige pro Notiz
+- Wort-, Zeichen- und Lesezeitschätzung für die ausgewählte Notiz
 - Entwurfsautospeicherung und Vorschau
 - Externe Änderungen erkennen und vor Überschreiben schützen
 
@@ -47,6 +49,8 @@ Frontmatter-Felder, die CrossNote nicht versteht, bleiben beim Speichern erhalte
 - `setTags()` speichert normalisierte Tags sowohl im SQLite-Suchindex als auch im YAML-Frontmatter und erstellt vorher eine Versionssicherung.
 - Markdown-Dateien werden als UTF-8-Bytes mit identischen LF-Zeilenenden auf allen Plattformen geschrieben.
 - `NoteListModel` liefert Daten ausschließlich für gültige Indizes seiner eigenen Instanz und seiner einzigen Spalte; bei gleicher Änderungszeit ist die Reihenfolge über die Notiz-ID deterministisch.
+- Aufgabenmetriken zählen `- [ ]`, `* [x]` und `+ [X]` außerhalb von umschlossenen Markdown-Codeblöcken; Beispiel-Checkboxen in Codebeispielen bleiben ausgeschlossen.
+- Der Wortzähler erkennt Unicode-Buchstaben und Zahlen; Frontmatter wird aus der Statistik ausgeschlossen.
 - Neue SQLite-Versionen ergänzen Metadaten mit Migrationen, die nach einem unterbrochenen Schritt sicher erneut gestartet werden können.
 
 ### Datei- und Indexwiederherstellung
