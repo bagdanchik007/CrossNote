@@ -8,6 +8,7 @@ struct MarkdownMetrics
 {
     int words = 0;
     int characters = 0;
+    int charactersWithoutWhitespace = 0;
     int tasks = 0;
     int completedTasks = 0;
 
