@@ -1,5 +1,7 @@
 #include "NoteListModel.h"
 
+#include "domain/MarkdownMetrics.h"
+
 #include <QRegularExpression>
 #include <QVariant>
 
@@ -83,6 +85,8 @@ void NoteListModel::setNotes(QVector<Note> notes)
                 : m_section == QStringLiteral("recent") ? note.lastOpenedAt.isValid()
                 : m_section == QStringLiteral("edited")
                     ? note.updatedAt >= editedAfter
+                : m_section == QStringLiteral("tasks")
+                    ? measureMarkdown(note.content).openTasks() > 0
                     : true);
         const bool matchesQuery = m_searchResultsActive
             ? m_searchResultIds.contains(note.id)
@@ -134,7 +138,8 @@ void NoteListModel::setSection(const QString &section)
     if (normalized != QStringLiteral("notes")
         && normalized != QStringLiteral("favorites")
         && normalized != QStringLiteral("recent") && normalized != QStringLiteral("edited")
-        && normalized != QStringLiteral("trash") && normalized != QStringLiteral("archive")) {
+        && normalized != QStringLiteral("trash") && normalized != QStringLiteral("archive")
+        && normalized != QStringLiteral("tasks")) {
         return;
     }
     if (m_section == normalized)
