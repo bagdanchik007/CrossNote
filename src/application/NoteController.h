@@ -28,6 +28,8 @@ class NoteController final : public QObject
     Q_PROPERTY(int editorFontSize READ editorFontSize NOTIFY editorFontSizeChanged)
     Q_PROPERTY(bool darkTheme READ darkTheme NOTIFY themeChanged)
     Q_PROPERTY(int selectedWordCount READ selectedWordCount NOTIFY metricsChanged)
+    Q_PROPERTY(int selectedCharacterCount READ selectedCharacterCount NOTIFY metricsChanged)
+    Q_PROPERTY(int selectedCompactCharacterCount READ selectedCompactCharacterCount NOTIFY metricsChanged)
 
 public:
     explicit NoteController(QObject *parent = nullptr);
@@ -48,6 +50,8 @@ public:
     [[nodiscard]] int editorFontSize() const;
     [[nodiscard]] bool darkTheme() const;
     [[nodiscard]] int selectedWordCount() const;
+    [[nodiscard]] int selectedCharacterCount() const;
+    [[nodiscard]] int selectedCompactCharacterCount() const;
 
     Q_INVOKABLE void initialize();
     Q_INVOKABLE void setVaultPath(const QString &path);
