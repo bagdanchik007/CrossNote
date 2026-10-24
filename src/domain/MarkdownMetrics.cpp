@@ -14,6 +14,10 @@ MarkdownMetrics measureMarkdown(const QString &markdown)
             body.remove(0, frontMatterEnd + 4);
     }
     metrics.characters = body.size();
+    for (const QChar character : body) {
+        if (!character.isSpace())
+            ++metrics.charactersWithoutWhitespace;
+    }
 
     static const QRegularExpression token(
         QStringLiteral("[\\p{L}\\p{N}]+(?:['’][\\p{L}\\p{N}]+)*"));
