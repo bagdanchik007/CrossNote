@@ -660,6 +660,14 @@ ApplicationWindow {
                         Accessible.name: qsTr("Editor-Schrift vergrößern")
                         onClicked: noteController.setEditorFontSize(noteController.editorFontSize + 1)
                     }
+                    ToolButton {
+                        text: "☐"
+                        enabled: noteController.hasSelection
+                        Accessible.name: qsTr("Unerledene Aufgabe an Cursorposition einfügen")
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Aufgabe einfügen · Strg+Umschalt+T")
+                        onClicked: window.insertChecklistItem()
+                    }
                     Button {
                         text: window.previewMode ? qsTr("Bearbeiten") : qsTr("Vorschau")
                         Accessible.name: window.previewMode ? qsTr("Markdown-Editor anzeigen") : qsTr("Markdown-Vorschau anzeigen")
