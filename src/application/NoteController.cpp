@@ -228,6 +228,7 @@ bool NoteController::saveCurrent(const QString &title, const QString &content)
     m_selectedTitle = title.trimmed().isEmpty() ? tr("Unbenannte Notiz") : title.trimmed();
     m_selectedContent = content;
     m_selectedHash = savedHash;
+    refreshSelectedMetrics();
     refreshLinkAnalysis();
     clearError();
     if (!m_conflictPath.isEmpty()) {
