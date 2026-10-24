@@ -589,6 +589,7 @@ ApplicationWindow {
 
                 RowLayout {
                     Layout.fillWidth: true
+                    spacing: 12
                     spacing: 8
                     TextField {
                         id: titleField
@@ -790,6 +791,15 @@ ApplicationWindow {
                         text: noteController.errorText.length ? noteController.errorText : noteController.statusText
                         color: noteController.errorText.length ? "#b42318" : "#687181"
                         elide: Text.ElideRight
+                    }
+                    Label {
+                        visible: noteController.hasSelection && noteController.selectedTaskCount > 0
+                        text: qsTr("Aufgaben: %1/%2 (%3%)")
+                              .arg(noteController.selectedCompletedTaskCount)
+                              .arg(noteController.selectedTaskCount)
+                              .arg(noteController.selectedTaskCompletionPercent)
+                        color: window.secondaryTextColor
+                        Accessible.name: text
                     }
                     Label {
                         text: noteController.hasSelection
