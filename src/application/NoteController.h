@@ -99,6 +99,7 @@ private:
     void reloadNotes();
     bool activateCreatedNote(const Note &note);
     void refreshLinkAnalysis();
+    void refreshSelectedMetrics();
     void setStatus(const QString &message);
     void setError(const QString &message);
     void clearError();
