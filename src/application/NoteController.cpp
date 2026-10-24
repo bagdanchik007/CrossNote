@@ -186,6 +186,7 @@ bool NoteController::openNote(const QString &id)
     m_selectedContent = selected->content;
     m_selectedHash = selected->contentHash;
     m_selectedTags = selected->tags;
+    refreshSelectedMetrics();
     emit selectedTagsChanged();
     refreshLinkAnalysis();
     const bool openedRecorded = m_repository.markOpened(id, &error);
