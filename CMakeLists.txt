@@ -15,6 +15,8 @@ endif()
 add_library(crossnote_data STATIC
     src/data/NoteRepository.cpp
     src/data/NoteRepository.h
+    src/domain/MarkdownMetrics.cpp
+    src/domain/MarkdownMetrics.h
     src/domain/Note.h
 )
 target_include_directories(crossnote_data PUBLIC src)
