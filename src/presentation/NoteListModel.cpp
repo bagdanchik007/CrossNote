@@ -34,6 +34,7 @@ QVariant NoteListModel::data(const QModelIndex &index, int role) const
     case UpdatedAtRole: return note.updatedAt;
     case FavoriteRole: return note.favorite;
     case TagsRole: return note.tags;
+    case OpenTaskCountRole: return measureMarkdown(note.content).openTasks();
     default: return {};
     }
 }
@@ -46,7 +47,8 @@ QHash<int, QByteArray> NoteListModel::roleNames() const
         {PreviewRole, "preview"},
         {UpdatedAtRole, "updatedAt"},
         {FavoriteRole, "favorite"},
-        {TagsRole, "tags"}
+        {TagsRole, "tags"},
+        {OpenTaskCountRole, "openTaskCount"}
     };
 }
 
