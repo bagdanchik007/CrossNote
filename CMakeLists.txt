@@ -78,6 +78,6 @@ if (BUILD_TESTING)
         src/presentation/NoteListModel.h
     )
     target_include_directories(crossnote_note_list_model_tests PRIVATE src)
-    target_link_libraries(crossnote_note_list_model_tests PRIVATE Qt6::Core Qt6::Test)
+    target_link_libraries(crossnote_note_list_model_tests PRIVATE crossnote_data Qt6::Core Qt6::Test)
     add_test(NAME crossnote_note_list_model COMMAND crossnote_note_list_model_tests)
 endif()
