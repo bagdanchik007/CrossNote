@@ -15,7 +15,8 @@ MarkdownMetrics measureMarkdown(const QString &markdown)
     }
     metrics.characters = body.size();
 
-    static const QRegularExpression token(QStringLiteral("\\S+"));
+    static const QRegularExpression token(
+        QStringLiteral("[\\p{L}\\p{N}]+(?:['’][\\p{L}\\p{N}]+)*"));
     auto words = token.globalMatch(body);
     while (words.hasNext()) {
         words.next();
