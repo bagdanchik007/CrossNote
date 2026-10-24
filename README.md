@@ -6,6 +6,8 @@ CrossNote ist ein plattformübergreifendes Notizprojekt. Ziel ist eine native Ap
 
 **Lokaler Prototyp (Phase 03–04 in Arbeit).** CrossNote bietet einen Dateisystem-Vault mit Markdown-Notizen, SQLite-Metadatenindex, Suche, Favoriten, Tags, Papierkorb, Vorschau und Entwurfsautospeicherung. Sync und Webfunktionen sind noch nicht implementiert.
 
+Aufgaben lassen sich mit Markdown-Checkboxen (`- [ ]`) in Notizen verwalten. Der Bereich „Offene Aufgaben“ sammelt Notizen mit unerledigten Punkten. Die Editor-Statuszeile zeigt Wörter, Zeichen, eine grobe Lesezeit und den Aufgabenfortschritt. Mit `Strg+Umschalt+T` fügst du eine Checkbox an der Cursorposition ein.
+
 ## Voraussetzungen
 
 - CMake 3.21 oder neuer
