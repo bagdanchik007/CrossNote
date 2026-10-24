@@ -625,7 +625,6 @@ ApplicationWindow {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 12
                     spacing: 8
                     TextField {
                         id: titleField
@@ -830,6 +829,7 @@ ApplicationWindow {
 
                 RowLayout {
                     Layout.fillWidth: true
+                    spacing: 12
                     Label {
                         Layout.fillWidth: true
                         text: noteController.errorText.length ? noteController.errorText : noteController.statusText
