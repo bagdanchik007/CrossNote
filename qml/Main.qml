@@ -176,6 +176,17 @@ ApplicationWindow {
         onTriggered: saveEditor()
     }
 
+    Shortcut {
+        sequence: "Ctrl+Shift+T"
+        enabled: noteController.hasSelection
+        onActivated: {
+            window.previewMode = false
+            bodyEditor.forceActiveFocus()
+            bodyEditor.insert(bodyEditor.cursorPosition, "- [ ] ")
+            saveTimer.restart()
+        }
+    }
+
     Timer {
         id: searchTimer
         interval: 180
