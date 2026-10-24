@@ -83,6 +83,7 @@ void NoteController::setVaultPath(const QString &path)
     m_selectedId.clear();
     m_selectedTitle.clear();
     m_selectedContent.clear();
+    refreshSelectedMetrics();
     m_selectedHash.clear();
     m_selectedTags.clear();
     refreshLinkAnalysis();
@@ -253,6 +254,7 @@ void NoteController::deleteCurrent()
     m_selectedId.clear();
     m_selectedTitle.clear();
     m_selectedContent.clear();
+    refreshSelectedMetrics();
     m_selectedHash.clear();
     m_selectedTags.clear();
     refreshLinkAnalysis();
@@ -347,6 +349,7 @@ void NoteController::setSection(const QString &section)
         m_selectedId.clear();
         m_selectedTitle.clear();
         m_selectedContent.clear();
+        refreshSelectedMetrics();
         m_selectedHash.clear();
         m_selectedTags.clear();
         emit selectedTagsChanged();
