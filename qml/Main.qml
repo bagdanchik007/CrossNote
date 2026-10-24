@@ -47,6 +47,14 @@ ApplicationWindow {
             return noteController.saveCurrent(titleField.text, bodyEditor.text)
         return true
     }
+    function insertChecklistItem() {
+        if (!noteController.hasSelection)
+            return
+        window.previewMode = false
+        bodyEditor.forceActiveFocus()
+        bodyEditor.insert(bodyEditor.cursorPosition, "- [ ] ")
+        saveTimer.restart()
+    }
     function confirmCreateNote() {
         createNoteError = ""
         if (!saveEditor())
@@ -179,12 +187,7 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+Shift+T"
         enabled: noteController.hasSelection
-        onActivated: {
-            window.previewMode = false
-            bodyEditor.forceActiveFocus()
-            bodyEditor.insert(bodyEditor.cursorPosition, "- [ ] ")
-            saveTimer.restart()
-        }
+        onActivated: window.insertChecklistItem()
     }
 
     Timer {
