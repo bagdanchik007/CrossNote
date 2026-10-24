@@ -408,6 +408,12 @@ void NoteController::refreshLinkAnalysis()
     emit linkAnalysisChanged();
 }
 
+void NoteController::refreshSelectedMetrics()
+{
+    m_selectedMetrics = measureMarkdown(m_selectedContent);
+    emit metricsChanged();
+}
+
 void NoteController::setStatus(const QString &message)
 {
     if (m_statusText == message)
