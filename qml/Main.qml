@@ -336,6 +336,18 @@ ApplicationWindow {
                     }
                     Button {
                         Layout.fillWidth: true
+                        text: qsTr("Offene Aufgaben")
+                        Accessible.name: qsTr("Notizen mit offenen Aufgaben anzeigen")
+                        checkable: true
+                        checked: window.currentSection === "tasks"
+                        onClicked: {
+                            if (!saveEditor()) return
+                            window.currentSection = "tasks"
+                            noteController.setSection("tasks")
+                        }
+                    }
+                    Button {
+                        Layout.fillWidth: true
                         text: qsTr("Favoriten")
                         Accessible.name: qsTr("Favoriten anzeigen")
                         checkable: true
