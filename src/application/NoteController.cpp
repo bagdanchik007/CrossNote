@@ -39,6 +39,20 @@ QString NoteController::statusText() const { return m_statusText; }
 QString NoteController::errorText() const { return m_errorText; }
 int NoteController::editorFontSize() const { return m_editorFontSize; }
 bool NoteController::darkTheme() const { return m_darkTheme; }
+int NoteController::selectedWordCount() const { return m_selectedMetrics.words; }
+int NoteController::selectedCharacterCount() const { return m_selectedMetrics.characters; }
+int NoteController::selectedCompactCharacterCount() const
+{
+    return m_selectedMetrics.charactersWithoutWhitespace;
+}
+int NoteController::selectedTaskCount() const { return m_selectedMetrics.tasks; }
+int NoteController::selectedCompletedTaskCount() const { return m_selectedMetrics.completedTasks; }
+int NoteController::selectedOpenTaskCount() const { return m_selectedMetrics.openTasks(); }
+int NoteController::selectedTaskCompletionPercent() const
+{
+    return m_selectedMetrics.completionPercent();
+}
+int NoteController::selectedReadingMinutes() const { return m_selectedMetrics.readingMinutes(); }
 
 void NoteController::initialize()
 {
