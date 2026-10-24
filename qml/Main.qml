@@ -500,6 +500,7 @@ ApplicationWindow {
                             required property var updatedAt
                             required property bool favorite
                             required property var tags
+                            required property int openTaskCount
                             width: noteList.width
                             highlighted: noteController.selectedId === noteId
                             onClicked: {
@@ -533,6 +534,12 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         text: Qt.formatDateTime(updatedAt, "dd.MM.yyyy HH:mm")
                                         color: window.mutedTextColor
+                                        font.pixelSize: 10
+                                    }
+                                    Label {
+                                        visible: openTaskCount > 0
+                                        text: qsTr("%1 offene Aufgaben").arg(openTaskCount)
+                                        color: window.secondaryTextColor
                                         font.pixelSize: 10
                                     }
                                     Flow {
